@@ -65,11 +65,14 @@ class FootprintDetectorTest {
 
 	@Test
 	void wallsTouchingOnlyAtCornersStillClose() throws PlanException {
-		// A ring with its north-east corner block missing: the walls meet diagonally.
+		// A ring with all four corner blocks missing: the four walls meet only diagonally.
 		ring(0, 0, 6, 6);
-		solid.remove(((long) 6 << 32) | 0L);
+		for (int[] corner : new int[][] {{0, 0}, {6, 0}, {0, 6}, {6, 6}}) {
+			solid.remove(((long) corner[0] << 32) | (corner[1] & 0xffffffffL));
+		}
 		Footprint f = detect(3, 6);
-		assertTrue(f.contains(3, 3));
+		assertTrue(f.contains(3, 3), "the room inside is found");
+		assertTrue(f.contains(0, 3) && f.contains(6, 3) && f.contains(3, 0), "all four walls belong to it");
 		assertFalse(f.contains(6, 0), "the missing corner stays outside");
 	}
 
