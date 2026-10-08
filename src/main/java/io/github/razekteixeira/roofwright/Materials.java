@@ -32,9 +32,10 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 			net.minecraft.world.level.block.Blocks.SPRUCE_PLANKS,
 			null);
 
-	/** A short name for chat: the stairs' id without the suffix. */
+	/** A short name for chat: the stairs' id, without the namespace for vanilla blocks. */
 	public String name() {
-		return id(stairs).toString();
+		Identifier id = id(stairs);
+		return "minecraft".equals(id.getNamespace()) ? id.getPath() : id.toString();
 	}
 
 	public static Identifier id(Block block) {
