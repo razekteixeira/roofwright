@@ -1,0 +1,133 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'me.modmuss50.mod-publish-plugin' version "${mod_publish_version}"
+}
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Common Protection API (Patbox), the shared hook claim mods use to answer "may this player build here".
+	maven {
+		name = 'Nucleoid'
+		url = 'https://maven.nucleoid.xyz/'
+		content {
+			includeGroup 'eu.pb4'
+		}
+	}
+}
+
+loom {
+	mods {
+		"roofwright" {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "roofwright-gametest"
+		enableGameTests = true
+		enableClientGameTests = true
+		eula = true
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Bundled inside our jar; falls back to vanilla permission levels when no permissions mod is installed.
+	implementation include("me.lucko:fabric-permissions-api:${project.permissions_api_version}")
+	// Bundled inside our jar; claim mods that implement it (GOML, Flan, ...) can refuse roof blocks.
+	implementation include("eu.pb4:common-protection-api:${project.common_protection_api_version}")
+
+	testImplementation platform("org.junit:junit-bom:${project.junit_version}")
+	testImplementation "org.junit.jupiter:junit-jupiter"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+test {
+	useJUnitPlatform()
+	// ./gradlew test -PshowOutput prints what the tests print (ASCII roof views on failures).
+	testLogging.showStandardStreams = project.hasProperty("showOutput")
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName" }
+	}
+	from("THIRD_PARTY_NOTICES.md")
+}
+
+// GameTests always start from a fresh world, so results never depend on an earlier run.
+def gameTestWorld = layout.buildDirectory.dir("run/gameTest/world")
+tasks.named("runGameTest") {
+	doFirst {
+		gameTestWorld.get().asFile.deleteDir()
+	}
+}
+
+// Planner benchmark: ./gradlew benchmark (pure Java, no Minecraft). Arguments: -Pbench="sizes repeats".
+tasks.register("benchmark", JavaExec) {
+	group = "verification"
+	description = "Times the roof planner on footprints from 16x16 to 256x256"
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = "io.github.razekteixeira.roofwright.core.PlannerBenchmark"
+	args = (project.findProperty("bench") ?: "").toString().tokenize()
+}
+
+// Publishing to CurseForge with modmuss50's mod-publish-plugin. Needs CURSEFORGE_TOKEN (the release
+// workflow passes a repository secret) and curseforge_project_id in gradle.properties. Without
+// either, it runs as a dry run: the upload is assembled under build/ but nothing leaves the machine.
+// Release notes come from build/release-notes.md, which the workflow extracts from CHANGELOG.md.
+def curseforgeToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+def curseforgeProject = project.findProperty("curseforge_project_id")?.toString() ?: ""
+def releaseNotes = file("build/release-notes.md")
+publishMods {
+	file = jar.archiveFile
+	displayName = "Roofwright ${project.version}"
+	type = project.version.contains("alpha") ? ALPHA
+			: (project.version.contains("beta") || project.version.contains("rc")) ? BETA : STABLE
+	modLoaders.add("fabric")
+	changelog = releaseNotes.exists() ? releaseNotes.text : "See CHANGELOG.md"
+	dryRun = curseforgeToken.getOrNull() == null || curseforgeProject.isEmpty()
+
+	curseforge {
+		accessToken = curseforgeToken
+		projectId = curseforgeProject.isEmpty() ? "0" : curseforgeProject
+		projectSlug = "roofwright"
+		minecraftVersions.add(project.minecraft_version)
+		javaVersions.add(JavaVersion.VERSION_25)
+		// Runs on dedicated servers, and in singleplayer when installed on the client.
+		client = true
+		server = true
+		requires("fabric-api")
+	}
+}

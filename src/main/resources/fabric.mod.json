@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "roofwright",
+	"version": "${version}",
+	"name": "Roofwright",
+	"description": "Complete roofs in one click: detects your building's outline from the wall tops and builds gable, hip, dutch gable, gambrel, mansard, pyramid, shed, flat, cone or dome roofs from stairs and slabs, with corners, hips and valleys right. Preview, place, undo. Server-side; vanilla clients can join.",
+	"authors": [
+		"razekteixeira"
+	],
+	"contact": {
+		"homepage": "https://razekteixeira.github.io/roofwright/",
+		"sources": "https://github.com/razekteixeira/roofwright",
+		"issues": "https://github.com/razekteixeira/roofwright/issues"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/roofwright/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"io.github.razekteixeira.roofwright.Roofwright"
+		]
+	},
+	"mixins": [
+		"roofwright.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
