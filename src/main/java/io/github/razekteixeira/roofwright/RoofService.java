@@ -87,14 +87,18 @@ public final class RoofService {
 
 	/** Detects the outline whose wall top contains {@code pos} and selects it. */
 	public static Footprint detect(CommandSourceStack source, ServerLevel level, BlockPos pos) throws PlanException {
-		Settings settings = RoofwrightConfig.get();
 		Footprint footprint = FootprintDetector.detect(pos.getX(), pos.getY(), pos.getZ(),
-				(x, z) -> isWall(level.getBlockState(new BlockPos(x, pos.getY(), z))), settings.maxSpan());
+				(x, z) -> isWall(level.getBlockState(new BlockPos(x, pos.getY(), z))), maxSpan(source));
 		RoofSession session = session(source);
 		BlockState clicked = level.getBlockState(pos);
 		session.wallSample = clicked.isCollisionShapeFullBlock(level, pos) && !clicked.hasBlockEntity() ? clicked : null;
 		select(session, level, footprint);
 		return footprint;
+	}
+
+	/** The widest outline this builder may roof: {@code maxSpan}, or the planner's hard ceiling with {@code roofwright.unlimited}. */
+	static int maxSpan(CommandSourceStack source) {
+		return RoofwrightCommands.canExceedLimits(source) ? RoofPlanner.MAX_SPAN : RoofwrightConfig.get().maxSpan();
 	}
 
 	/** Solid enough to be part of a wall: anything but air, fluids and replaceable plants or snow. */
@@ -113,7 +117,7 @@ public final class RoofService {
 		}
 		builder.addRectangle(from.getX(), from.getZ(), to.getX(), to.getZ());
 		Footprint footprint = builder.build();
-		int maxSpan = RoofwrightConfig.get().maxSpan();
+		int maxSpan = maxSpan(source);
 		if (footprint.width() > maxSpan || footprint.depth() > maxSpan) {
 			throw new PlanException("The selection is " + footprint.width() + " x " + footprint.depth()
 					+ " blocks; the limit is " + maxSpan + " (maxSpan in config/roofwright.json).");
@@ -224,7 +228,7 @@ public final class RoofService {
 			Preview.clear(player, session);
 		}
 		String label = session.spec.describe() + " roof";
-		PlacementJob job = new PlacementJob(PlacementJob.Kind.PLACE, owner, prepared.level(), label, steps, force,
+		PlacementJob job = new PlacementJob(PlacementJob.Kind.PLACE, owner, source.getPlayer(), prepared.level(), label, steps, force, prepared.blocked(),
 				done -> finished(source.getServer(), done));
 		Placements.start(job);
 		int blocked = prepared.targets().size() - steps.size();
@@ -264,7 +268,7 @@ public final class RoofService {
 		if (level == null) {
 			throw new PlanException("That roof is in a world that is not loaded.");
 		}
-		PlacementJob job = new PlacementJob(kind, owner, level, journal.label(), steps, false, done -> finished(source.getServer(), done));
+		PlacementJob job = new PlacementJob(kind, owner, source.getPlayer(), level, journal.label(), steps, false, done -> finished(source.getServer(), done));
 		Placements.start(job);
 		return job;
 	}
@@ -285,7 +289,7 @@ public final class RoofService {
 	/** Reports a finished job to its owner and records it for undo. */
 	static void finished(MinecraftServer server, PlacementJob job) {
 		UUID owner = job.owner();
-		if (job.kind() == PlacementJob.Kind.PLACE && owner != null && job.placed() > 0) {
+		if (job.kind() == PlacementJob.Kind.PLACE && job.placed() > 0) {
 			session(owner).history.record(job.journal(), RoofwrightConfig.get().historySize());
 		}
 		StringBuilder text = new StringBuilder(job.kind().done).append(": ").append(job.label()).append(", ")
@@ -306,7 +310,7 @@ public final class RoofService {
 		Roofwright.LOGGER.info("{} ({} by {}): {} placed, {} conflicts, skipped {}, {} ticks, max {} ms and {} blocks per tick",
 				job.kind(), job.label(), owner, job.placed(), job.conflicts(), job.skipped(), job.ticks(),
 				String.format(java.util.Locale.ROOT, "%.2f", job.maxTickNanos() / 1e6), job.maxTickBlocks());
-		ServerPlayer player = owner == null ? null : server.getPlayerList().getPlayer(owner);
+		ServerPlayer player = job.player();
 		if (player != null) {
 			player.sendSystemMessage(Component.literal(text.toString()).withStyle(ChatFormatting.GREEN));
 		}

@@ -49,7 +49,8 @@ public final class PlacementJob {
 	}
 
 	private final Kind kind;
-	private final @Nullable UUID owner;
+	private final UUID owner;
+	private final @Nullable ServerPlayer player;
 	private final @Nullable NameAndId builder;
 	private final ServerLevel level;
 	private final String label;
@@ -67,11 +68,23 @@ public final class PlacementJob {
 	private int maxTickBlocks;
 	private boolean cancelled;
 
-	public PlacementJob(Kind kind, @Nullable UUID owner, ServerLevel level, String label, List<Step> steps, boolean force,
-			Consumer<PlacementJob> onDone) {
+	/**
+	 * @param owner  who started it (the console has its own id), for undo history and "one job at a time"
+	 * @param player the builder, or {@code null} for the console; claims keep being checked against the
+	 *               builder's name and id after they log off
+	 */
+	public PlacementJob(Kind kind, UUID owner, @Nullable ServerPlayer player, ServerLevel level, String label, List<Step> steps,
+			boolean force, Consumer<PlacementJob> onDone) {
+		this(kind, owner, player, level, label, steps, force, Map.of(), onDone);
+	}
+
+	/** @param skippedBefore blocks the plan already left out, so the final report counts them too */
+	public PlacementJob(Kind kind, UUID owner, @Nullable ServerPlayer player, ServerLevel level, String label, List<Step> steps,
+			boolean force, Map<Protection.Verdict, Integer> skippedBefore, Consumer<PlacementJob> onDone) {
+		skipped.putAll(skippedBefore);
 		this.kind = kind;
 		this.owner = owner;
-		@Nullable ServerPlayer player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
+		this.player = player;
 		this.builder = player == null ? null : player.nameAndId();
 		this.level = level;
 		this.label = label;
@@ -93,7 +106,7 @@ public final class PlacementJob {
 	 */
 	int tick(int maxBlocks, long deadline) {
 		long start = System.nanoTime();
-		@Nullable ServerPlayer player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
+		@Nullable ServerPlayer player = this.player != null && !this.player.hasDisconnected() ? this.player : null;
 		int done = 0;
 		while (next < steps.size() && done < maxBlocks && (done == 0 || System.nanoTime() < deadline)) {
 			apply(steps.get(next++), player);
@@ -181,8 +194,13 @@ public final class PlacementJob {
 		return kind;
 	}
 
-	public @Nullable UUID owner() {
+	public UUID owner() {
 		return owner;
+	}
+
+	/** The builder while they are still connected. */
+	public @Nullable ServerPlayer player() {
+		return player != null && !player.hasDisconnected() ? player : null;
 	}
 
 	public ServerLevel level() {

@@ -16,6 +16,14 @@ repositories {
 			includeGroup 'eu.pb4'
 		}
 	}
+	// Macaw's Roofs, only on the GameTest classpath, to prove its roof blocks work as material.
+	maven {
+		name = 'Modrinth'
+		url = 'https://api.modrinth.com/maven'
+		content {
+			includeGroup 'maven.modrinth'
+		}
+	}
 }
 
 loom {
@@ -45,6 +53,9 @@ dependencies {
 	implementation include("me.lucko:fabric-permissions-api:${project.permissions_api_version}")
 	// Bundled inside our jar; claim mods that implement it (GOML, Flan, ...) can refuse roof blocks.
 	implementation include("eu.pb4:common-protection-api:${project.common_protection_api_version}")
+
+	// Not bundled and not required: GameTests check that Macaw's roof blocks work as stairs.
+	gametestRuntimeOnly "maven.modrinth:macaws-roofs:${project.macaws_roofs_version}"
 
 	testImplementation platform("org.junit:junit-bom:${project.junit_version}")
 	testImplementation "org.junit.jupiter:junit-jupiter"

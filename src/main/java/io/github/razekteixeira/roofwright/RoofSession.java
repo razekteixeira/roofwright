@@ -30,6 +30,14 @@ public final class RoofSession {
 		return spec;
 	}
 
+	public void setSpec(RoofSpec value) {
+		spec = value;
+	}
+
+	public void setMaterials(Materials value) {
+		materials = value;
+	}
+
 	public Materials materials() {
 		return materials;
 	}

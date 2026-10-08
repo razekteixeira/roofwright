@@ -79,7 +79,7 @@ See research.md for sources. The decisions:
 | AC13 | Materials: vanilla families resolve stairs, slab, full block, wall; any stair-like block works; non-building blocks are refused with a message. | GameTest `materialsResolveFromAnyFamilyMember`. |
 | AC14 | Preview: only the builder receives it, packet entities (none added to the world), capped at the limit, blocked blocks highlighted, cleared on place and cancel. | GameTest `previewIsPacketOnlyCappedAndMarksBlocked`. |
 | AC15 | Wand: a stick with the Roofwright marker is the wand, a plain stick is not. | GameTest `wandIsRecognisedByItsMarker`. |
-| AC16 | Config: missing fields default, out-of-range values clamp with warnings, a broken file is never overwritten, defaults are written in full. | `RoofwrightSettingsTest`, `RoofwrightConfigTest`. |
+| AC16 | Config: missing fields default, out-of-range values clamp with warnings, a broken file is never overwritten, defaults are written in full; history keeps its limit and a new roof clears redo. | `RoofwrightConfigTest` (4 cases), `HistoryTest` (4 cases). |
 | AC17 | Performance: planning a 256 x 256 hip roof is fast enough to run on the server thread (target under 50 ms warmed), and placement stays within the per-tick time budget. | `./gradlew benchmark` and `tools/benchmark.sh` readings recorded in sdlc-log.md. |
 | AC18 | Vanilla clients: works with no client mod (server-only registration, vanilla items and entities only). | Dedicated-server GameTests; client capture uses only vanilla rendering. |
 

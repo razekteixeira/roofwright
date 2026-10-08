@@ -125,9 +125,17 @@ public final class Preview {
 	}
 
 	private static void send(ServerPlayer player, List<Packet<? super ClientGamePacketListener>> packets) {
-		for (int start = 0; start < packets.size(); start += PACKETS_PER_BUNDLE) {
-			List<Packet<? super ClientGamePacketListener>> part = packets.subList(start, Math.min(packets.size(), start + PACKETS_PER_BUNDLE));
-			player.connection.send(new ClientboundBundlePacket(new ArrayList<>(part)));
+		for (List<Packet<? super ClientGamePacketListener>> part : bundles(packets)) {
+			player.connection.send(new ClientboundBundlePacket(part));
 		}
+	}
+
+	/** Splits the packets into bundles the protocol accepts, keeping each ghost's two packets together. */
+	public static List<List<Packet<? super ClientGamePacketListener>>> bundles(List<Packet<? super ClientGamePacketListener>> packets) {
+		List<List<Packet<? super ClientGamePacketListener>>> bundles = new ArrayList<>();
+		for (int start = 0; start < packets.size(); start += PACKETS_PER_BUNDLE) {
+			bundles.add(new ArrayList<>(packets.subList(start, Math.min(packets.size(), start + PACKETS_PER_BUNDLE))));
+		}
+		return bundles;
 	}
 }

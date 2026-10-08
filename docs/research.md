@@ -30,9 +30,9 @@ are as of 2026-10-08 unless stated.
 - **Demand is unmeasured.** The brief's Reddit thread is about the underside of roof blocks, which a
   stair generator does not fix [S2-29]. Direct requests are few, old or unverified [S2-30] [S2-31]
   [S2-32].
-- **Decision.** The owner was notified on 2026-10-08 with options A, B and C and the default
-  "differentiate" [LOG-1]; no explicit reply has been received yet. The build proceeds on option A under
-  the owner's standing goal instruction and is reversible if he chooses B or C (section 2.4).
+- **Decision.** The owner was notified twice on 2026-10-08, the second time with the literal trigger and
+  options A, B and C [LOG-1]. No reply as of writing; the build proceeds on option A (differentiate)
+  under the owner's standing goal instruction and is reversible if he chooses B or C (section 2.4).
 
 ## 2. Question 1: demand and gaps
 
@@ -58,7 +58,7 @@ Versions and dates as of 2026-10-08.
 | dynamic_framing | Work-in-progress timber frames "and roofs"; only a froe tool so far [R4-D9] | Fabric/Forge | 1.20.1 [R4-D9] | No |
 | Pugtools Roof Designer | 16 styles, rectangle or L footprint, a pitch setting (the page shows 1:1), per-side overhang, 3D stair and slab preview, Litematica or material list export [S1-21] [R3-L16]. That it cannot read or place into a world is inferred from its export-only workflow [R3-L16] | Browser | n/a | Closest feature set, out of game |
 | Other web planners | CraftShape (rectangles only; its FAQ says to split irregular buildings into rectangles), Jethz, VoxShaper, MCToolbox, minebuildr [S1-22] [S1-23] [S2-24] | Browser | n/a | Partial, out of game |
-| Building generators | jkuhta/llmbuilder (Fabric, 1.21.11) generates whole buildings with gable, hip, mansard, flat and stepped gable roofs from a distance-field planner [R3-L23]; Arnis builds gabled, hipped, half-hipped, mansard, skillion and pyramidal roofs over OpenStreetMap footprints [R4-D11]; GDMC entries (section 4.5). None takes a player's existing build | various | n/a | No (prior art) |
+| Building generators | jkuhta/llmbuilder (Fabric, 1.21.11) generates whole buildings with gable, hip, mansard, flat and stepped gable roofs from a distance-field planner [R3-L23]; Arnis builds roofs over OpenStreetMap footprints with 12 roof types (gabled, hipped, half-hipped, skillion, pyramidal, mansard, gambrel, round, dome, cone, onion, flat) [R4-D11] [R6-S6]; GDMC entries (section 4.5). None takes a player's existing build | various | n/a | No (prior art) |
 | roof-thing | See below [S1-19] [R1-1] [R4-D17] | Fabric | 26.3 | **Closest in-game**, unpublished |
 
 **roof-thing in detail.** README: a wand marks wall-top corner pairs per rectangular section; sections can
@@ -70,12 +70,9 @@ selection in memory only; a test checks stair shapes against vanilla [S1-19] [R1
 sections are outlined with particles, but there is no preview of the roof [R3-L20]. Code: undo skips any
 block that is no longer exactly what it placed; placement checks `level.mayInteract(player, pos)` and
 places only into air or replaceable blocks; it registers a custom `roof_wand` item with texture and
-recipe, so clients need the mod [R4-D17]. Two commits, 0 stars, 0 forks, description "e", CC0-1.0, not
-on Modrinth or CurseForge (as of 2026-10-08) [S1-20] [R1-1]. The code was read but not built or run.
-
-GitHub repository search is a weak instrument: roof-thing does not surface in it because its description
-is "e" [R4-D9], and MCTools surfaced only through code search because its README does not mention the
-roof shape [R4-D10].
+recipe, so clients need the mod [R4-D17]. Two commits, 0 forks, CC0-1.0 [S1-20] [R1-1]. Read, not built or
+run. GitHub repository search is weak: it misses roof-thing (description "e") [R4-D9], and MCTools surfaced
+only through code search [R4-D10].
 
 ### 2.2 Demand signals
 
@@ -117,7 +114,9 @@ current versions, report to the owner with options before building." roof-thing 
 gable and hip roofs with valleys over unions of rectangles and tests stair shapes against vanilla
 [S1-19] [R4-D17]. **On a literal reading the rule is triggered** [R4-F1]; that roof-thing is unpublished
 and two days old does not change the wording. Arceon and MCTools do not qualify (single-block shapes, no
-26.x evidence) [S1-9] [R4-D10]; Pugtools is out of game [S1-21].
+26.x evidence) [S1-9] [R4-D10]; Pugtools is out of game [S1-21]. Building generators such as
+llmbuilder, Arnis and GDMC entries roof their own generated or map-derived buildings, not a player's
+existing build, so they do not trigger the rule either [R3-L23] [R4-D11] [S3-32].
 
 Options reported to the owner:
 
@@ -127,9 +126,15 @@ Options reported to the owner:
 - **(C) Contribute to roof-thing.** CC0-1.0 allows reuse [R1-1], but the repository shows no maintenance
   or community (two commits, 0 stars, 0 forks) [S1-20], and it needs a client-side mod [R4-D17].
 
-Status: the owner was notified by push notification on 2026-10-08 with these options and the default
-"differentiate" [LOG-1]. No explicit owner reply has been received yet. The build proceeds under the
-owner's standing goal instruction; it is reversible if the owner chooses B or C.
+Status [LOG-1]. Two push notifications were sent to the owner on 2026-10-08:
+
+1. About 20:10 WEST: "Roofwright stop rule: only near-equal is an unpublished 2-day-old GitHub mod (3
+   styles, manual rects). Continuing with 'differentiate' unless you say stop."
+2. 20:37 WEST: "Roofwright decision: roof-thing (GitHub, unpublished) triggers your stop rule.
+   A=differentiate (doing this), B=stop, C=contribute to it. Reply B or C to change."
+
+No reply as of writing. The build proceeds on A under the owner's standing goal instruction; it is
+reversible if the owner chooses B or C.
 
 **Headline differentiators against roof-thing** (each maps to an acceptance criterion in
 `docs/spec.md`; design decisions unless cited):
@@ -137,9 +142,11 @@ owner's standing goal instruction; it is reversible if the owner chooses B or C.
 1. **Server-side only: vanilla clients can join.** The wand is a vanilla item with components; roof-thing
    registers a textured, craftable item that needs the mod on the client [R4-D17].
 2. **One-click footprint detection from wall tops**, versus marking rectangle corners [S1-19].
-3. **Any rectilinear footprint** (L, T, U, arbitrary), versus marked rectangles [S1-19].
+3. **Automatic decomposition of any outline** (L, T, U, arbitrary rectilinear), versus marking each
+   rectangle by hand; roof-thing reaches L, T and U shapes by marking extra sections [R6-m4].
 4. **Ten styles**: gable, hip, dutch gable, gambrel, mansard, pyramid, shed, flat with parapet, cone,
-   dome; roof-thing has three [S1-19].
+   dome; roof-thing has three [S1-19]. Style count is not a differentiator against the out-of-game
+   Pugtools (16 styles) [S1-21]; in-game detection and placement are.
 5. **Three pitches** (1:2, 1:1, 2:1); roof-thing documents none [S1-19].
 6. **Gable wall infill** matched to the wall block, including internal steps; roof-thing leaves gable
    triangles open [R1-1].
@@ -231,14 +238,12 @@ The straight skeleton (Aichholzer, Aurenhammer, Alberts and Gartner, 1995) gives
 constructing a polygonal roof above a general layout of ground walls" [S3-19]. Its arcs are the ridge
 lines of the roof obtained by lifting each point by the time the inward wavefront reaches it [S3-20]
 [R3-L54]; hips and valleys are the roof's external and internal corner lines [S3-2]. Felkel and
-Obdrzalek's 1998 algorithm [S3-21] "has been shown ... incorrect"; correct bounds are Huber-Held
-O(nr log n) and Eppstein-Erickson O(nr + n log n) [S3-20]. CGAL offers weighted skeletons and capped
-extrusion (gables and mansards as weight or height tricks), but it is C++ [S3-22]. Kelly and Wonka report
-that architectural models produce "a large number of degenerate events" and that weighted skeletons are
-ambiguous in the concave case [S3-24]. Laycock and Day (2003) derived several roof styles from a modified
-skeleton (metadata only) [S3-25]. CityEngine warns that `roofGable` only works on convex single-face
-shapes [S3-27]. Rectilinear footprints are among the most degenerate inputs for event-based skeletons
-[S3-24], so a general skeleton is the wrong tool here (author inference).
+Obdrzalek's algorithm [S3-21] "has been shown ... incorrect"; correct bounds are Huber-Held
+O(nr log n) and Eppstein-Erickson O(nr + n log n) [S3-20]. CGAL (C++) models gables and mansards as
+weight or height tricks [S3-22]. Kelly and Wonka report "a large number of degenerate events" in
+architectural models [S3-24], and CityEngine documents `roofGable` as convex-only while showing it on an
+L lot [S3-27]. Rectilinear footprints are highly degenerate inputs for event-based skeletons [S3-24], so a
+general skeleton is the wrong tool here (author inference).
 
 ### 4.2 Key result: the hip roof is a Chebyshev distance transform
 
@@ -271,8 +276,7 @@ maximum over all maximal rectangles (axis-aligned rectangles inside the footprin
 of each rectangle's own hip profile (author inference: any rectangle inside the footprint has no larger
 Chebyshev distance, and the largest square centred on a cell lies in some maximal rectangle). The R4
 simulation confirmed the equality on 300 of 300 random unions of up to five rectangles [R4-F4]. Mansard
-is f(d) of the same field [R4-F5]. Shed keeps maximal-rectangle max-composition with one slope direction
-for the whole roof (design decision).
+is f(d) of the same field [R4-F5]. Shed uses one slope direction for the whole roof (table below).
 
 **Gable, dutch gable, gambrel: main wing plus arms (design decision).** Max-composition over maximal
 rectangles is unsound for gables [R4-F4]: a 6-long, 1-deep bump on a 20 by 10 block creates a 6 by 11
@@ -288,15 +292,39 @@ instead of a wing ending in a valley. Roofwright therefore uses a partition:
    valley and stops.
 4. If the arm would rise above that wing's ridge (it is wider than the wing), its ridge instead runs
    parallel to the attachment, with no extension.
-5. Every neighbour height jump greater than one block inside the footprint gets gable infill, not only the
+5. An arm that touches several earlier pieces on one side joins the one with the most contact. A piece
+   that touches earlier pieces on two or more sides is not an arm: it keeps its long-side ridge with full
+   overhang. Arms of arms follow the same rules against the piece they join.
+6. Every neighbour height jump greater than one block inside the footprint gets gable infill, not only the
    outer gable triangles.
 
 Property tests (G4) cover the sceptic's failure cases: **bump cross gable** (a shallow bump yields at
 most a local cross gable that ends in a valley, never a ridge through the building), **width step** (every
 internal jump is filled), **L with two gable ends** (main ridge plus one arm ending in a valley, one gable
-end per arm), plus the hip equality check above. A minimum rectangle partition (n/2 + h - g - 1 pieces,
+end per arm), plus the hip equality check above. The sceptic's jog threshold and minimum rectangle width
+[R4-F4] are not adopted in v1, because these property tests pass without them; a shallow bump therefore
+still gets its own small cross gable (section 8). A minimum rectangle partition (n/2 + h - g - 1 pieces,
 polynomial via bipartite matching) [S3-28] is the fallback if the greedy split produces too many pieces
 on noisy outlines.
+
+**One rule per style (design decision, implemented).** Below, o is the overhang in blocks, e the step
+distance in from the eave and R the radius of a round roof.
+
+| Style | Rule |
+|---|---|
+| Gable | Main wing plus arms as above, profile from the pitch setting |
+| Dutch gable | Gable with hipped ends up to a gablet setback of o + max(1, (ridge height - o) / 2) |
+| Gambrel | Gable profile, steep (2:1) for the first o + clamp((max step - o) / 3, 1, 3) steps, then 1:2 |
+| Hip | Chebyshev field with the pitch profile |
+| Mansard | The gambrel profile applied to the hip field |
+| Pyramid | Hip; exact on squares, otherwise a hip roof, with a note to the player |
+| Shed | Rises one pitch step per column towards a chosen side |
+| Flat with parapet | Deck at wall-top height inside the walls, plus a one-block parapet on the walls (the family's wall block, or the full block) |
+| Cone | Straight-line distance field with the chosen pitch (default slope from the pitch setting) |
+| Dome | Circular profile: height = R * sqrt(1 - (1 - e/R)^2), in half blocks |
+
+Arnis implements gambrel, cone, dome and flat among its 12 roof types and is an Apache-2.0 reference for
+those profiles (credit in THIRD_PARTY_NOTICES only if code is reused) [R6-S6].
 
 ### 4.4 Footprint detection from wall tops
 
@@ -316,8 +344,8 @@ Enclosed courtyards are unreachable from outside, so v1 covers them (a stated li
 GDMC entries add roofs after the shell with no general roof algorithm [S3-32]; a typical entry
 hard-codes a fixed-width gable with filled gable walls and upside-down accent stairs [S3-33]. An
 evolutionary generator labels a voxel with empty space above it as roof [S3-34]. Arnis, the largest open
-source footprint-to-roof implementation in Minecraft (Apache-2.0), applies six roof types to OpenStreetMap
-polygons [R4-D11]. jkuhta/llmbuilder uses a distance-field roof planner for generated buildings [R3-L23].
+source footprint-to-roof implementation in Minecraft (Apache-2.0), applies 12 roof types to OpenStreetMap
+polygons [R4-D11] [R6-S6]. jkuhta/llmbuilder uses a distance-field roof planner for generated buildings [R3-L23].
 Effortless Structure has full-block pyramid, cone and dome shapes [R4-D6]; dynamic_framing plans roofs but
 ships only a froe tool [R4-D9]. None works on a player's existing build.
 
@@ -363,10 +391,15 @@ a dedicated server is to be checked. Modded blocks are detected by block state p
 `half`, `shape` for stairs; `type` for slabs) [S3-11] [S3-14]. Macaw's Roofs `RoofBlock` does not extend
 `StairBlock` but declares the same `FACING`, `HALF` and `SHAPE` properties and its own `getStairsShape`
 [R3-L14]. **Roofwright deliberately accepts any block with stair properties as a stair and sets the shape
-itself** (design decision), so Macaw's roof blocks work as stair material. Risk: Macaw's own corner rule
-may differ from vanilla's and could rewrite a shape on a later neighbour update; a GameTest with Macaw's
-loaded should check this before it is advertised. A dedicated mapping of Macaw's piece types (steep,
-lower, top, attic) is deferred.
+itself** (design decision). This supersedes R3 required fix 5 (check the block class or keep an allow
+list): a class check would exclude Macaw's roof blocks, and an allow list would need upkeep for every
+mod, while the property check lets any mod's stair-like blocks work as material [R6-m8]. The check uses
+the vanilla property objects (`StairBlock.FACING`, `HALF`, `SHAPE`), not property names (design
+decision); Macaw's blocks pass because they declare these properties [R3-L14]. Confirmed in game after
+this report's review: the GameTest `macawsRoofBlocksWorkAsStairs` loads Macaw's Roofs 2.3.2 for 26.3
+(GameTest classpath only, never bundled), resolves `mcwroofs:oak_roof` with vanilla oak slab and
+planks, roofs an L-shaped house and checks that Macaw's own shape rule keeps every placed piece. Risks are listed in section 8. A dedicated mapping of Macaw's piece
+types (steep, lower, top, attic) is deferred.
 
 ## 6. Question 5: safety and scale
 
@@ -428,9 +461,15 @@ Design decisions:
 
 ### 6.6 Consent before overwriting
 
-Design decision: by default Roofwright places only into air and replaceable blocks (as roof-thing does
-[R4-D17]); any other position is left alone and reported. A force option behind its own permission node
-may replace ordinary blocks but never block entities or unbreakable blocks.
+The brief requires never overwriting non-air without consent. Replaceable blocks are non-air: short grass,
+snow layers, vines and, in vanilla, water and lava report `canBeReplaced` [R6-M2]. roof-thing places into
+air or replaceable blocks [R4-D17], which would overwrite them.
+
+Design decision (implemented): by default Roofwright places only into air. Every other block, including
+replaceable plants, snow layers and fluids (water, lava), counts as in the way and is skipped and shown
+as blocked in the preview. `/roof place force`, behind its own permission node, also replaces plain blocks
+but never block entities or unbreakable blocks. A GameTest (`airOnlyByDefault`) proves that stone, water
+and short grass are left alone.
 
 ## 7. Question 6: performance plan and benchmark
 
@@ -464,8 +503,14 @@ footprint within one tick (author inference).
   [S4-23] [S4-24].
 - **Display entities**: no 26.x FPS figures; outline recolouring unconfirmed [S4-13] [R3-L34].
 - **Placement path**: `UPDATE_KNOWN_SHAPE` is an inference until a GameTest proves it [S4-35].
-- **Macaw's corner rule** may differ from vanilla on neighbour updates (section 5) [R3-L14].
-- **Gable composition** (4.3) is a design decision that rests on its property tests [R4-F4].
+- **Stair detection by properties** (section 5) has three risks: Macaw's own corner rule may rewrite a
+  shape on a later neighbour update [R3-L14]; another mod's block may carry the vanilla stair properties
+  without being stair-shaped (a look-alike non-stair); and Macaw's steep, lower and top pieces have
+  different geometry from a 1:1 stair, so a roof built from them may not match the planned pitch [R6-m8].
+- **Gable composition** (4.3) is a design decision that rests on its property tests [R4-F4]. Without a jog
+  threshold or minimum width, a shallow bump on a wall gets its own small cross gable.
+- **Detection**: anything solid touching the wall top at the same height (a block on the eave line, a
+  fence) joins the walls and so changes the outline (design decision consequence, section 4.4).
 - **Scope decisions for v1**: courtyards covered; one wall-top level per operation (roof-thing supports
   per-section heights); no survival material cost (roof-thing has it [R1-1]); v1 targets creative
   builders and operators.
@@ -481,12 +526,8 @@ footprint within one tick (author inference).
 4. WorldEdit: tag 7.4.5 in S1 [S1-4], 7.4.6-beta-02 for 26.3 in S4 [S4-26].
 5. "Only roof-thing" in GitHub search [S1-25] is wrong: llmbuilder [R3-L23] and MCTools [R4-D10] also
    surface.
-6. Stairs wording versus bytecode agree once `facing` is the full-block side [S3-12] [S3-13].
-7. CPA README says `modImplementation include`; Fabric 26.1 and GOML use `implementation include`
+6. CPA README says `modImplementation include`; Fabric 26.1 and GOML use `implementation include`
    [S4-7] [S4-21].
-8. CityEngine `roofGable` documented convex-only yet shown on an L lot [S3-27].
-9. Euclidean versus Chebyshev for hip roofs: Chebyshev is correct for rectilinear footprints [S3-23]
-   [R4-F5].
 
 ## 9. References
 
@@ -495,7 +536,7 @@ All accessed 2026-10-08. Tier as assigned by the pack or review.
 | Id | Title | URL | Published | Tier |
 |---|---|---|---|---|
 | R1-1 | howdoiusethissite/roof-thing (GitHub API metadata and README, lead-verified) | https://github.com/howdoiusethissite/roof-thing ; https://api.github.com/repos/howdoiusethissite/roof-thing | created 2026-10-06 | primary |
-| LOG-1 | Roofwright gate log, delivery item G0 Intake ready (owner notification) | docs/sdlc-log.md | 2026-10-08 | primary (project record) |
+| LOG-1 | Roofwright gate log: owner notifications on the stop rule (about 20:10 and 20:37 WEST) | docs/sdlc-log.md | 2026-10-08 | primary (project record) |
 | S1-1 | roof.js (WorldEdit contrib CraftScript) | https://github.com/EngineHub/WorldEdit/blob/master/contrib/craftscripts/roof.js | 2011; last change 2018-12-20 | primary |
 | S1-3 | FAWE contrib craftscripts; WorldEdit docs "CraftScripts" | https://github.com/IntellectualSites/FastAsyncWorldEdit/tree/main/contrib/craftscripts ; https://worldedit.enginehub.org/en/latest/usage/other/craftscripts/ | undated | primary |
 | S1-4 | GitHub code search, WorldEdit and FAWE | https://github.com/EngineHub/WorldEdit ; https://github.com/IntellectualSites/FastAsyncWorldEdit | FAWE 2.16.0 2026-10-04 | primary |
@@ -565,7 +606,6 @@ All accessed 2026-10-08. Tier as assigned by the pack or review.
 | S3-22 | CGAL 2D Straight Skeleton manual; CGAL news | https://doc.cgal.org/latest/Straight_skeleton_2/index.html ; https://www.cgal.org/2023/05/09/improved_straight_skeleton/ | undated / 2023-05-09 | primary |
 | S3-23 | Barequet, Eppstein, Goodrich, Vaxman, Straight Skeletons of Three-Dimensional Polyhedra | https://arxiv.org/abs/0805.0022 | 2008-04-30 | primary |
 | S3-24 | Kelly and Wonka, Interactive Architectural Modeling with Procedural Extrusions | https://eprints.gla.ac.uk/48707/1/48707.pdf | 2011 | primary |
-| S3-25 | Laycock and Day, Automatically generating roof models from building footprints | https://dspace5.zcu.cz/handle/11025/991 | 2003 | primary (metadata) |
 | S3-27 | CityEngine CGA roofGable, roofHip | https://doc.arcgis.com/en/cityengine/latest/cga/cga-roof-gable.htm ; https://doc.arcgis.com/en/cityengine/latest/cga/cga-roof-hip.htm | undated (2026.0) | primary |
 | S3-28 | Eppstein, Graph-Theoretic Solutions to Computational Geometry Problems | https://arxiv.org/abs/0908.3916 | 2009-08-26 | primary |
 | S3-29 | Connected-component labeling | https://en.wikipedia.org/wiki/Connected-component_labeling | 2026-10-03 | secondary |
@@ -645,3 +685,7 @@ All accessed 2026-10-08. Tier as assigned by the pack or review.
 | R4-F6 | R4 finding: packet-only ghost obligations | docs/research-sceptic.md | 2026-10-08 | review |
 | R4-F8 | R4 finding: CPA linkage and offline placement | docs/research-sceptic.md | 2026-10-08 | review |
 | R4-F9 | R4 finding: the wand must never be the authority | docs/research-sceptic.md | 2026-10-08 | review |
+| R6-S6 | R6 spot-check 6: Arnis `RoofType` enum, 12 variants (adds gambrel, round, dome, cone, onion, flat) | https://github.com/louis-e/arnis (src/element_processing/buildings.rs) | pushed 2026-10-05 | primary |
+| R6-M2 | R6 finding M2: replaceable blocks (short grass, snow layers, vines, water, lava) are non-air | docs/research-review.md | 2026-10-08 | review |
+| R6-m4 | R6 finding m4: roof-thing README, wings and annexes by marking extra sections | https://github.com/howdoiusethissite/roof-thing | 2026-10-06 | primary |
+| R6-m8 | R6 finding m8: R3 fix 5 superseded; property look-alikes and Macaw's piece geometry | docs/research-review.md | 2026-10-08 | review |
