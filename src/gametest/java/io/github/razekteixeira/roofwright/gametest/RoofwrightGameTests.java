@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
+import io.netty.channel.embedded.EmbeddedChannel;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -13,7 +16,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -21,7 +26,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
+import net.minecraft.server.permissions.PermissionSet;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.item.DyeColor;
@@ -73,8 +80,18 @@ public class RoofwrightGameTests {
 
 	// --- helpers -----------------------------------------------------------------------------------
 
+	/**
+	 * A connected builder with its own id, so previews reach a real (embedded) connection. Built from public
+	 * APIs: {@code GameTestHelper.makeMockServerPlayerInLevel} is marked for removal.
+	 */
 	private static ServerPlayer builder(GameTestHelper helper, GameType mode) {
-		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		MinecraftServer server = helper.getLevel().getServer();
+		GameProfile profile = new GameProfile(java.util.UUID.randomUUID(), "test-builder");
+		CommonListenerCookie cookie = CommonListenerCookie.createInitial(profile, false);
+		ServerPlayer player = new ServerPlayer(server, helper.getLevel(), profile, cookie.clientInformation());
+		Connection connection = new Connection(PacketFlow.SERVERBOUND);
+		new EmbeddedChannel(connection);
+		server.getPlayerList().placeNewPlayer(connection, player, cookie);
 		player.setGameMode(mode);
 		return player;
 	}
@@ -363,7 +380,7 @@ public class RoofwrightGameTests {
 		MinecraftServer server = helper.getLevel().getServer();
 		CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
 		CommandSourceStack op = server.createCommandSourceStack().withLevel(helper.getLevel()).withSuppressedOutput();
-		CommandSourceStack everyone = op.withPermission(LevelBasedPermissionSet.ALL);
+		CommandSourceStack everyone = op.withPermission(PermissionSet.NO_PERMISSIONS);
 		CommandSourceStack gamemaster = op.withPermission(LevelBasedPermissionSet.GAMEMASTER);
 		expectFailure(helper, dispatcher, "roof info", everyone, "level 0 using /roof");
 		expectFailure(helper, dispatcher, "roofwright info", everyone, "level 0 using the alias");
