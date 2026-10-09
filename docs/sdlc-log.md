@@ -28,6 +28,12 @@ Push notifications sent to the owner:
 No reply as of the last update of this log; the build proceeds on option A under the owner's standing goal
 instruction and is reversible if the owner chooses B or C.
 
+**Owner decision (2026-10-09): option A, differentiate and publish Roofwright.** The owner made it conditional
+on roof-thing not being on CurseForge. Rechecked the same day: CurseForge search ("roof thing") returns only
+an unrelated mod; Modrinth search returns nothing; the GitHub repository `howdoiusethissite/roof-thing` has no
+releases and no push since 2026-10-06. The owner will handle the release. Risk kept from the research:
+roof-thing may publish first; Roofwright credits it as prior art.
+
 ## Delivery item
 
 | Gate | Status | Evidence |
