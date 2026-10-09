@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/razekteixeira/roofwright/actions/workflows/build.yml"><img alt="Build" src="https://github.com/razekteixeira/roofwright/actions/workflows/build.yml/badge.svg"></a>
+  <a href="https://www.curseforge.com/minecraft/mc-mods/roofwright"><img alt="CurseForge downloads" src="https://img.shields.io/curseforge/dt/1735168?logo=curseforge&label=CurseForge"></a>
   <img alt="Minecraft 26.3" src="https://img.shields.io/badge/Minecraft-26.3-6aa84f">
   <img alt="Fabric" src="https://img.shields.io/badge/loader-Fabric-dbd0b4">
   <a href="LICENSE"><img alt="Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
