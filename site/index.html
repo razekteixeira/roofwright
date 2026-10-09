@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roofwright: whole Minecraft roofs in one click</title>
+<meta name="description" content="Roofwright detects your building's outline from the tops of its walls and builds a complete roof from stairs and slabs: gable, hip, dutch gable, gambrel, mansard, pyramid, shed, flat, cone or dome. Preview, place, undo. Fabric, server-side, vanilla clients can join.">
+<meta name="theme-color" content="#0b0e18">
+<link rel="canonical" href="https://razekteixeira.github.io/roofwright/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Roofwright">
+<meta property="og:description" content="Whole Minecraft roofs from the tops of your walls, in one click. Ten styles, hips and valleys done right, preview and undo. Server-side Fabric mod.">
+<meta property="og:url" content="https://razekteixeira.github.io/roofwright/">
+<meta property="og:image" content="https://razekteixeira.github.io/roofwright/media/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Roofwright logo, a voxel cottage with a stepped terracotta roof, over a Minecraft village of roofed houses, with the tagline: whole roofs from the tops of your walls, in one click.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Roofwright">
+<meta name="twitter:description" content="Whole Minecraft roofs from the tops of your walls, in one click. Server-side Fabric mod.">
+<meta name="twitter:image" content="https://razekteixeira.github.io/roofwright/media/social.png">
+<meta name="twitter:image:alt" content="Roofwright logo over a Minecraft village of roofed houses.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" as="image" type="image/webp" href="media/gallery-dusk.webp" imagesrcset="media/gallery-dusk-640.webp 640w, media/gallery-dusk.webp 1920w" imagesizes="(max-width: 720px) 240vw, 100vw">
+<script>document.documentElement.classList.add('js')</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Silkscreen&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="Roofwright home">
+      <img src="favicon.png" width="32" height="32" alt="">
+      <span>Roofwright</span>
+    </a>
+    <nav aria-label="Sections">
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#owners">Server owners</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <a class="nav-gh" href="https://github.com/razekteixeira/roofwright">GitHub</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- Hero: full-bleed dusk shot of the roofed village, copy + 3D logo left, the real chat summary right -->
+  <section class="hero" id="top">
+    <picture class="hero-bg" aria-hidden="true">
+      <source type="image/webp" srcset="media/gallery-dusk-640.webp 640w, media/gallery-dusk.webp 1920w" sizes="(max-width: 720px) 240vw, 100vw">
+      <img src="media/gallery-dusk.png" width="1920" height="1080" alt="" fetchpriority="high">
+    </picture>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <div class="hero-brand">
+          <picture>
+            <source type="image/webp" srcset="media/logo3d.webp">
+            <img class="logo3d" src="media/logo3d.png" width="600" height="600" alt="">
+          </picture>
+          <h1 class="pixel">Roofwright</h1>
+        </div>
+        <p class="pitch">Whole roofs from the tops of your walls, in one click.</p>
+        <p class="sub">Right-click a wall top with the wand. Roofwright finds the building's outline, shows you a ghost of the roof, and builds it from stairs and slabs, hips and valleys included.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://www.curseforge.com/minecraft/mc-mods/roofwright">Get it on CurseForge</a>
+          <a class="btn btn-ghost" href="https://github.com/razekteixeira/roofwright">Source on GitHub</a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="chat" role="img" aria-label="The chat summary Roofwright prints for a preview of a hip roof on an L-shaped house: 123 blocks over 79 columns, and how to build it.">
+          <p class="l"><span class="c-gray">&gt; /roof detect</span></p>
+          <p class="l"><span class="c-aqua">Hip, 1:1, overhang 1 roof in spruce_stairs:</span></p>
+          <p class="l"><span class="c-aqua">123 blocks over 79 columns.</span></p>
+          <p class="l"><span class="c-gray">Sneak + right-click with the wand or</span></p>
+          <p class="l"><span class="c-gray">/roof place to build.</span></p>
+          <p class="l"><span class="c-gray">&gt; /roof place</span></p>
+          <p class="l"><span class="c-green">Roof built: hip, 1:1, overhang 1 roof,</span></p>
+          <p class="l"><span class="c-green">123 blocks. /roof undo takes it back.</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Before and after, then the roof going up -->
+  <section class="captures" aria-labelledby="captures-title">
+    <div class="wrap">
+      <h2 class="pixel" id="captures-title">Bare walls in, roofs out</h2>
+      <div class="capture-grid">
+        <figure class="cap">
+          <a class="shot" href="media/before.png" data-full="media/before.webp" data-caption="Before: seven houses with bare walls."><picture><source type="image/webp" srcset="media/before-640.webp 640w, media/before.webp 1920w" sizes="(max-width: 720px) 100vw, 50vw"><img src="media/before.png" width="1920" height="1080" loading="lazy" decoding="async" alt="A Minecraft village of seven houses with bare walls and no roofs"></picture></a>
+          <figcaption>Before: seven houses, walls only.</figcaption>
+        </figure>
+        <figure class="cap">
+          <a class="shot" href="media/after.png" data-full="media/after.webp" data-caption="After: gable, hip, dutch gable, gambrel, mansard, cone and flat roofs, one /roof place each."><picture><source type="image/webp" srcset="media/after-640.webp 640w, media/after.webp 1920w" sizes="(max-width: 720px) 100vw, 50vw"><img src="media/after.png" width="1920" height="1080" loading="lazy" decoding="async" alt="The same village with gable, hip, dutch gable, gambrel, mansard, cone and flat roofs"></picture></a>
+          <figcaption>After: one <code>/roof place</code> per house.</figcaption>
+        </figure>
+        <figure class="cap cap-wide">
+          <a class="shot" href="media/grow.gif" data-full="media/grow.gif" data-caption="The ghost preview, then the roof going up a few blocks per tick, eaves first."><picture><img src="media/grow.gif" width="800" height="450" loading="lazy" decoding="async" alt="A ghost roof preview over an L-shaped house, then the real roof going up from the eaves to the ridge"></picture></a>
+          <figcaption>Ghost first, then the roof goes up from the eaves, a budgeted number of blocks per tick.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features: asymmetric bento, 6 cells -->
+  <section class="features" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <h2 class="pixel" id="features-title">What it does</h2>
+      <div class="bento">
+        <article class="cell cell-rates graph">
+          <h3>Ten roof styles, three pitches</h3>
+          <p>Gable, hip, dutch gable, gambrel, mansard, pyramid, shed, flat with a parapet, cone and dome. Pitch 1:2 (slabs), 1:1 (stairs) or 2:1 (steep), and an overhang of 0 to 3 blocks.</p>
+          <div class="windows" aria-hidden="true">
+            <span>1:2</span><span class="on">1:1</span><span>2:1</span>
+          </div>
+        </article>
+
+        <article class="cell cell-server tint">
+          <h3>Server-side only</h3>
+          <p>Install it on the server. Players join with an unmodified client; the wand is a vanilla stick and the ghost is made of vanilla display entities.</p>
+        </article>
+
+        <article class="cell cell-any">
+          <h3>Finds the outline itself</h3>
+          <p>One click on a wall top: rectangles, L, T and U shapes and any other right-angled outline. No marking corners.</p>
+        </article>
+
+        <article class="cell cell-alerts">
+          <h3>Corners done right</h3>
+          <dl class="alert-kinds">
+            <div><dt class="c-gold">HIPS</dt><dd>Outer corner stairs along every hip, from the chessboard distance of the outline.</dd></div>
+            <div><dt class="c-aqua">VALLEYS</dt><dd>Inner corner stairs where wings meet; a smaller wing's ridge runs into the main roof and stops.</dd></div>
+            <div><dt class="c-green">GABLES</dt><dd>Gable walls filled with the block your walls are made of.</dd></div>
+            <div><dt class="c-purple">STABLE</dt><dd>Every stair gets the shape Minecraft's own rule gives it, so nothing reshapes later.</dd></div>
+          </dl>
+        </article>
+
+        <article class="cell cell-watch">
+          <h3>Preview, place, undo</h3>
+          <p>A glowing ghost only you can see, with blocks in the way in red. Undo and redo leave alone anything someone changed in the meantime.</p>
+        </article>
+
+        <article class="cell cell-perm graph">
+          <h3>Any material</h3>
+          <p>Any member of a block family (oak, deepslate tiles, bricks, blackstone...), stair-like blocks from other mods such as Macaw's Roofs, or three blocks of your choice.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery: one large shot + two stacked, then the style grid -->
+  <section class="gallery" id="gallery" aria-labelledby="gallery-title">
+    <div class="wrap">
+      <h2 class="pixel" id="gallery-title">The test village</h2>
+      <p class="lead">Seven houses with bare walls, each roofed with one detect and one place. Every shot on this page is a real capture from the game client, made by the project's capture test.</p>
+      <div class="gal-grid">
+        <figure class="gal gal-main">
+          <a class="shot" href="media/gallery-valleys.png" data-full="media/gallery-valleys.webp" data-caption="A hip roof on an L-shaped house: hips and a valley where the wings meet."><picture><source type="image/webp" srcset="media/gallery-valleys-640.webp 640w, media/gallery-valleys.webp 1920w" sizes="(max-width: 720px) 100vw, 66vw"><img src="media/gallery-valleys.png" width="1920" height="1080" loading="lazy" decoding="async" alt="A deepslate tile hip roof on an L-shaped stone brick house, with hips and a valley"></picture></a>
+          <figcaption>Hip roof on an L: hips at every corner, a valley where the wings meet.</figcaption>
+        </figure>
+        <figure class="gal">
+          <a class="shot" href="media/gallery-barn.png" data-full="media/gallery-barn.webp" data-caption="A gambrel barn roof: steep below, shallow above."><picture><source type="image/webp" srcset="media/gallery-barn-640.webp 640w, media/gallery-barn.webp 1920w" sizes="(max-width: 720px) 100vw, 33vw"><img src="media/gallery-barn.png" width="1920" height="1080" loading="lazy" decoding="async" alt="A red barn with a dark oak gambrel roof and a curved gable end"></picture></a>
+          <figcaption>Gambrel barn, gable wall filled to match.</figcaption>
+        </figure>
+        <figure class="gal">
+          <a class="shot" href="media/gallery-tower.png" data-full="media/gallery-tower.webp" data-caption="A steep cone on a round cobblestone tower."><picture><source type="image/webp" srcset="media/gallery-tower-640.webp 640w, media/gallery-tower.webp 1920w" sizes="(max-width: 720px) 100vw, 33vw"><img src="media/gallery-tower.png" width="1920" height="1080" loading="lazy" decoding="async" alt="A round cobblestone tower with a steep deepslate tile cone roof"></picture></a>
+          <figcaption>Steep cone on a round tower.</figcaption>
+        </figure>
+      </div>
+
+      <h3 class="sub-title">One house, six styles</h3>
+      <div class="styles-grid">
+        <figure class="style"><a class="shot" href="media/style-gable.png" data-full="media/style-gable.webp" data-caption="Gable, spruce."><picture><source type="image/webp" srcset="media/style-gable-640.webp"><img src="media/style-gable.png" width="1920" height="1080" loading="lazy" decoding="async" alt="L-shaped house with a spruce gable roof"></picture></a><figcaption>Gable</figcaption></figure>
+        <figure class="style"><a class="shot" href="media/style-hip.png" data-full="media/style-hip.webp" data-caption="Hip, deepslate tiles."><picture><source type="image/webp" srcset="media/style-hip-640.webp"><img src="media/style-hip.png" width="1920" height="1080" loading="lazy" decoding="async" alt="L-shaped house with a deepslate tile hip roof"></picture></a><figcaption>Hip</figcaption></figure>
+        <figure class="style"><a class="shot" href="media/style-dutch-gable.png" data-full="media/style-dutch-gable.webp" data-caption="Dutch gable, dark oak."><picture><source type="image/webp" srcset="media/style-dutch-gable-640.webp"><img src="media/style-dutch-gable.png" width="1920" height="1080" loading="lazy" decoding="async" alt="L-shaped house with a dark oak dutch gable roof"></picture></a><figcaption>Dutch gable</figcaption></figure>
+        <figure class="style"><a class="shot" href="media/style-gambrel.png" data-full="media/style-gambrel.webp" data-caption="Gambrel, bricks."><picture><source type="image/webp" srcset="media/style-gambrel-640.webp"><img src="media/style-gambrel.png" width="1920" height="1080" loading="lazy" decoding="async" alt="L-shaped house with a brick gambrel roof"></picture></a><figcaption>Gambrel</figcaption></figure>
+        <figure class="style"><a class="shot" href="media/style-mansard.png" data-full="media/style-mansard.webp" data-caption="Mansard, polished blackstone bricks."><picture><source type="image/webp" srcset="media/style-mansard-640.webp"><img src="media/style-mansard.png" width="1920" height="1080" loading="lazy" decoding="async" alt="L-shaped house with a polished blackstone brick mansard roof"></picture></a><figcaption>Mansard</figcaption></figure>
+        <figure class="style"><a class="shot" href="media/style-flat.png" data-full="media/style-flat.webp" data-caption="Flat with a parapet, stone bricks."><picture><source type="image/webp" srcset="media/style-flat-640.webp"><img src="media/style-flat.png" width="1920" height="1080" loading="lazy" decoding="async" alt="L-shaped house with a flat stone brick roof and a parapet wall"></picture></a><figcaption>Flat</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="counting" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <h2 class="pixel" id="how-title">How it works</h2>
+      <p class="lead">Every roof is a distance field over the outline, turned into heights in half blocks, then into stairs, slabs and full blocks.</p>
+      <figure class="preview-fig">
+        <a class="shot" href="media/preview.png" data-full="media/preview.webp" data-caption="The ghost preview: only you see it; the block in the way shows as red glass."><picture><source type="image/webp" srcset="media/preview-640.webp 640w, media/preview.webp 1920w" sizes="(max-width: 720px) 100vw, 80vw"><img src="media/preview.png" width="1920" height="1080" loading="lazy" decoding="async" alt="A glowing ghost roof over an L-shaped house, with a leaves block in the way shown as red glass"></picture></a>
+        <figcaption>The ghost preview. Only you see it; the leaves in the way show as red glass and will be skipped.</figcaption>
+      </figure>
+      <div class="rules">
+        <div class="rule">
+          <h3>The outline from one block</h3>
+          <p>Every solid block in the wall-top layer that touches the clicked one, corners included, is wall. Everything inside that the outside cannot reach is the building. Gaps in the top layer are reported.</p>
+        </div>
+        <div class="rule">
+          <h3>Hips and valleys</h3>
+          <p>Hip roofs rise with the chessboard distance to the outside. On right-angled outlines that is the straight skeleton carpenters follow, so hips and valleys land on the diagonals.</p>
+        </div>
+        <div class="rule">
+          <h3>Wings that meet</h3>
+          <p>Gable roofs split the outline into rectangles, largest first. Smaller wings get a ridge that runs into the main roof and ends at its ridge line, in a valley.</p>
+        </div>
+        <div class="rule">
+          <h3>Shapes Minecraft agrees with</h3>
+          <p>Each stair faces uphill and takes the corner shape the game's own rule gives it, so a neighbour update never reshapes the roof. The tests check every roof is watertight.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Commands -->
+  <section class="commands" id="commands" aria-labelledby="commands-title">
+    <div class="wrap commands-grid">
+      <div class="commands-intro">
+        <h2 class="pixel" id="commands-title">Commands</h2>
+        <p><code>/roof</code> and the alias <code>/roofwright</code> do the same thing. With the wand you rarely need them:</p>
+        <pre class="term"><code><span class="t-p">&gt;</span> /roof wand
+<span class="t-p">&gt;</span> /roof style hip
+<span class="t-p">&gt;</span> /roof material deepslate_tiles
+<span class="t-p">&gt;</span> /roof detect
+<span class="t-p">&gt;</span> /roof place</code></pre>
+        <p class="note">Right-click a wall top with the wand to preview, sneak + right-click to build, left-click for the next style.</p>
+      </div>
+
+      <div class="commands-table">
+        <table>
+          <caption class="sr">Roofwright commands</caption>
+          <thead class="sr"><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
+          <tbody>
+            <tr class="group"><th colspan="2" scope="colgroup">Choose the building</th></tr>
+            <tr><td><code>wand</code></td><td>Gives you the wand.</td></tr>
+            <tr><td><code>detect [pos]</code></td><td>Detects the building whose wall top you look at, or at <code>pos</code>, and previews its roof.</td></tr>
+            <tr><td><code>select &lt;from&gt; &lt;to&gt;</code></td><td>Selects a rectangle by hand. <code>select add</code> adds another for L, T or U shapes.</td></tr>
+          </tbody>
+          <tbody>
+            <tr class="group"><th colspan="2" scope="colgroup">Shape it</th></tr>
+            <tr><td><code>style &lt;style&gt;</code></td><td>gable, hip, dutch_gable, gambrel, mansard, pyramid, shed, flat, cone, dome.</td></tr>
+            <tr><td><code>pitch low|normal|steep</code></td><td>1:2 slabs, 1:1 stairs or 2:1 steep.</td></tr>
+            <tr><td><code>overhang &lt;0-3&gt;</code></td><td>How far the roof reaches past the walls.</td></tr>
+            <tr><td><code>material &lt;block&gt;</code></td><td>Stairs, slab and full block from any member of a family, or three blocks given explicitly.</td></tr>
+            <tr><td><code>ridge</code>, <code>shed</code>, <code>ridgecap</code>, <code>gable</code></td><td>Ridge direction, shed side, slab or full ridge caps, gable wall block.</td></tr>
+          </tbody>
+          <tbody>
+            <tr class="group"><th colspan="2" scope="colgroup">Build it</th></tr>
+            <tr><td><code>preview</code></td><td>Shows the ghost again.</td></tr>
+            <tr><td><code>place [force]</code></td><td>Builds the roof. <code>force</code> also replaces plain blocks in the way.</td></tr>
+            <tr><td><code>undo</code>, <code>redo</code></td><td>Takes your last roof back, or puts it back.</td></tr>
+            <tr><td><code>cancel</code></td><td>Stops a roof still going up and clears the preview.</td></tr>
+            <tr><td><code>info</code>, <code>reload</code></td><td>Your settings and history; re-read the config.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Server owners -->
+  <section class="owners" id="owners" aria-labelledby="owners-title">
+    <div class="wrap">
+      <h2 class="pixel" id="owners-title">For server owners</h2>
+      <div class="owners-grid">
+        <div class="own own-perm">
+          <h3>Permissions</h3>
+          <p>With a permissions mod, these nodes decide. Without one, the default operator levels apply. Holding a wand grants nothing.</p>
+          <dl class="perm">
+            <div><dt><code>roofwright.use</code></dt><dd><span class="lvl">2</span>Detect, preview, place, undo</dd></div>
+            <div><dt><code>roofwright.force</code></dt><dd><span class="lvl">2</span>Replace plain blocks in the way</dd></div>
+            <div><dt><code>roofwright.unlimited</code></dt><dd><span class="lvl">3</span>Past maxBlocks and maxSpan</dd></div>
+            <div><dt><code>roofwright.admin</code></dt><dd><span class="lvl">3</span>Reload the config</dd></div>
+          </dl>
+        </div>
+        <div class="own own-config">
+          <h3>Config</h3>
+          <p><code>config/roofwright.json</code>, applied with <code>/roof reload</code>.</p>
+<pre class="term json"><code>{
+  <span class="j-k">"maxSpan"</span>: <span class="j-n">96</span>,
+  <span class="j-k">"maxBlocks"</span>: <span class="j-n">30000</span>,
+  <span class="j-k">"blocksPerTick"</span>: <span class="j-n">2000</span>,
+  <span class="j-k">"millisPerTick"</span>: <span class="j-n">5</span>,
+  <span class="j-k">"historySize"</span>: <span class="j-n">10</span>,
+  <span class="j-k">"previewLimit"</span>: <span class="j-n">3000</span>,
+  <span class="j-k">"previewSeconds"</span>: <span class="j-n">300</span>,
+  <span class="j-k">"permissionLevels"</span>: {
+    <span class="j-k">"use"</span>: <span class="j-n">2</span>, <span class="j-k">"force"</span>: <span class="j-n">2</span>,
+    <span class="j-k">"unlimited"</span>: <span class="j-n">3</span>, <span class="j-k">"admin"</span>: <span class="j-n">3</span>
+  }
+}</code></pre>
+        </div>
+        <div class="own own-perf">
+          <div class="stat">
+            <p class="stat-num">2.05 ms</p>
+            <p class="stat-label">median worst tick while a 16,900-block hip roof goes up, default budget, measured with <code>tools/benchmark.sh</code>.</p>
+          </div>
+          <div class="safety">
+            <h3>Nothing overwritten</h3>
+            <p>Air only unless you say <code>force</code>; never chests or bedrock. Claim mods using the Common Protection API are respected, even after you log off.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section class="install" id="install" aria-labelledby="install-title">
+    <div class="wrap">
+      <h2 class="pixel" id="install-title">Install</h2>
+      <p class="lead">Needs Minecraft 26.3, Fabric Loader 0.19.5 or newer, Fabric API and Java 25.</p>
+      <div class="install-grid">
+        <div class="install-col">
+          <h3>On a server</h3>
+          <ol class="steps">
+            <li><span>Set up a Fabric server for Minecraft 26.3.</span></li>
+            <li><span>Put the Roofwright jar and Fabric API in the server's <code>mods/</code> folder.</span></li>
+            <li><span>Restart. Players join with a vanilla client, nothing to install on their side.</span></li>
+          </ol>
+        </div>
+        <div class="install-col">
+          <h3>In singleplayer</h3>
+          <ol class="steps">
+            <li><span>Install Fabric Loader for 26.3 with the Fabric installer.</span></li>
+            <li><span>Put the Roofwright jar and Fabric API in <code>.minecraft/mods/</code>.</span></li>
+            <li><span>Open a world with commands allowed and type <code>/roof wand</code>.</span></li>
+          </ol>
+        </div>
+      </div>
+      <a class="btn btn-primary" href="https://www.curseforge.com/minecraft/mc-mods/roofwright">Get it on CurseForge</a>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq-wrap">
+      <h2 class="pixel" id="faq-title">FAQ</h2>
+      <div class="qa">
+        <details>
+          <summary>Do players need to install anything?</summary>
+          <p>No. Roofwright runs on the server only. The wand is a vanilla stick with a name and a glint, and the ghost preview is made of display entities every vanilla 26.3 client renders.</p>
+        </details>
+        <details>
+          <summary>Will it overwrite my build?</summary>
+          <p>No. It places blocks only into air; anything else in the way, even tall grass or water, is skipped and shows red in the preview. <code>/roof place force</code> replaces plain blocks, but never chests, signs or other block entities, nor bedrock.</p>
+        </details>
+        <details>
+          <summary>What if the outline is not detected?</summary>
+          <p>The top layer of the walls must be closed (corners may touch diagonally). Doors and windows lower down do not matter. If there is a gap, Roofwright says so; fill it, or pick the outline by hand with <code>/roof select</code> and <code>/roof select add</code>.</p>
+        </details>
+        <details>
+          <summary>Can it build roofs in survival?</summary>
+          <p>Not in this version: it does not take blocks from your inventory, so by default only operators (permission level 2) can use it. Server owners can grant <code>roofwright.use</code> to builders.</p>
+        </details>
+        <details>
+          <summary>Does it work with Macaw's Roofs?</summary>
+          <p>Yes. Macaw's roof blocks behave like stairs, so <code>/roof material mcwroofs:oak_roof</code> works; the slab and full block are found by name. The tests run with Macaw's Roofs installed.</p>
+        </details>
+        <details>
+          <summary>Will a huge roof lag the server?</summary>
+          <p>Planning a 256 by 256 hip roof takes about 17 ms. Placing is spread over ticks: at most <code>blocksPerTick</code> blocks and <code>millisPerTick</code> milliseconds per tick, shared by everyone's roofs. Server owners also cap roof size with <code>maxBlocks</code> and <code>maxSpan</code>.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <img src="favicon.png" width="32" height="32" alt="">
+      <span class="pixel">Roofwright</span>
+    </div>
+    <ul class="foot-links">
+      <li><a href="https://www.curseforge.com/minecraft/mc-mods/roofwright">CurseForge</a></li>
+      <li><a href="https://github.com/razekteixeira/roofwright">GitHub</a></li>
+      <li><a href="https://github.com/razekteixeira/roofwright/issues">Report an issue</a></li>
+    </ul>
+    <p class="foot-legal">Released under the <a href="https://github.com/razekteixeira/roofwright/blob/main/LICENSE">Apache License 2.0</a>.</p>
+    <p class="foot-disclaimer">NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.</p>
+  </div>
+</footer>
+<dialog class="lb" id="lightbox" aria-label="Image viewer">
+  <figure class="lb-fig">
+    <img class="lb-img" src="" alt="">
+    <figcaption class="lb-cap"></figcaption>
+  </figure>
+  <button class="lb-btn lb-prev" type="button" aria-label="Previous image">&lsaquo;</button>
+  <button class="lb-btn lb-next" type="button" aria-label="Next image">&rsaquo;</button>
+  <button class="lb-btn lb-close" type="button" aria-label="Close" autofocus>&times;</button>
+</dialog>
+<script>
+(function () {
+  var dlg = document.getElementById('lightbox');
+  if (!dlg || typeof dlg.showModal !== 'function') return;
+  var shots = Array.prototype.slice.call(document.querySelectorAll('a.shot'));
+  var img = dlg.querySelector('.lb-img'), cap = dlg.querySelector('.lb-cap');
+  var index = 0, opener = null;
+  function show(i) {
+    index = (i + shots.length) % shots.length;
+    var a = shots[index], inner = a.querySelector('img');
+    img.src = a.getAttribute('data-full') || a.href;
+    img.alt = inner ? inner.alt : '';
+    cap.textContent = a.getAttribute('data-caption') || '';
+  }
+  shots.forEach(function (a, i) {
+    a.addEventListener('click', function (e) {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      opener = a;
+      show(i);
+      dlg.showModal();
+    });
+  });
+  dlg.querySelector('.lb-prev').addEventListener('click', function () { show(index - 1); });
+  dlg.querySelector('.lb-next').addEventListener('click', function () { show(index + 1); });
+  dlg.querySelector('.lb-close').addEventListener('click', function () { dlg.close(); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(index - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); show(index + 1); }
+  });
+  dlg.addEventListener('close', function () { img.removeAttribute('src'); if (opener) opener.focus(); });
+})();
+</script>
+</body>
+</html>

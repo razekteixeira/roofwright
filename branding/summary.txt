@@ -1,0 +1,1 @@
+Whole roofs in one click: detects your building's outline from the wall tops and builds gable, hip, mansard, gambrel, cone and more from stairs and slabs, hips and valleys right. Preview, undo. Server-side.
