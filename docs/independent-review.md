@@ -167,3 +167,47 @@ Reviewed HEAD `6003c1b`, read-only. Tests and mutants were inspected, not rerun;
 | AC5, AC6, AC12, AC14, AC17 (no threshold), AC18, AC20 (modded state variants), AC24 (ceiling) | recorded | Test limits, not behaviour defects; listed in `docs/sdlc-log.md` under G6 as known gaps for a later item. |
 | AC17 (gate log figures) | fixed | The gate log records the current planner and placement readings. |
 | AC31 (full revert) | accepted | Mutant M38 detects a wrong ranking deterministically; a revert to encounter order would fail intermittently (it did, which is how the bug was found). |
+
+## Part D: final outsider check (I3)
+
+Same reviewer setup, at commit `4841a00`, asked to verify N1, N2, F5 and N3, look for regressions, and judge the
+accepted and recorded items (and told to list test-coverage wishes as recorded gaps, not blockers). Verbatim:
+
+### Final check
+
+Read-only review of the working tree and `6003c1b..HEAD`. Tests and mutants were not rerun; failure discrimination below is established by inspection. An independent in-memory model checked 9,832 replay outcome/order combinations.
+
+| ID | Status | Evidence | Remaining problem |
+|---|---|---|---|
+| N1 | Fixed | `PlacementJob.java:182–200`: every settle write passes neighborhood loading, current-state equality and `Protection.check`, including place/break rights, border and connected-player restrictions. Removing the authorization guard makes `settlingRechecksProtection` connect the parapet, failing its unchanged-state assertion. | The regression tests late place-right denial specifically; late break-right, border and game-mode changes remain coverage gaps. |
+| N2 | Fixed | `PlacementJob.java:165–170,182–226`: only successful settle-marked writes enqueue their **change index**. Settlement replaces entries without shifting indices. Each queued check consumes budget, including unchanged or refused blocks. `isDone` correctly handles empty queues and cancellation. The old implementation fails `jobsWithoutSettlingEndWithTheirLastBlock` immediately after its fifth placement. | Mixed queues and unchanged-stair accounting lack dedicated discriminating tests; recorded gaps. |
+| F5 remainder | Fixed | `RoofService.java:344–365`: undo maps journal index `c` to step `n−1−c`; redo maps to `c`. Applied changes move, retryable/unprocessed changes stay, conflicts drop. Both fragments retain original journal order. The old implementation fails `blockedUndoKeepsTheRoofUndoable` because it removes the protected remainder from undo. | Blocked/cancelled redo, unloaded retries and mixed conflicts lack direct regression coverage. No mapping defect found. |
+| N3 | Fixed | `History.java:58–96`: both replay transitions trim both stacks, dropping oldest entries and retaining newest fragments; zero clears both. Without undo trimming, `splitEntriesStillRespectTheLimit` accumulates two redo entries and fails. | Removing **only redo trimming** survives this test and M40. Record that coverage gap. Fragment eviction is a reasonable bounded-history policy for beta. |
+| F3 scheduler | Reasonable recorded gap | `Placements.onServerTick` checks the shared deadline before dispatching subsequent jobs. | Multiple-owner deadline behavior remains untested; no demonstrated scheduler defect. |
+| F4 edges/redo | Reasonable accepted limitation | Unavailable neighborhoods skip settlement; redo restores journal states without settlement. Both limitations are explicitly acknowledged. | Incorrect corners can remain. This is a bounded geometry limitation suitable for beta, not a release-blocking server defect. |
+| F6 queued jobs | Acceptable policy, incomplete disclosure | Preparation revalidates materials. Already queued jobs retain planned states. | Old journals also bypass later forbidden-tag changes on redo, indefinitely during their lifetime. The resolution discusses mid-job behavior but does not explicitly accept this replay behavior; see D2. |
+| AC5, AC6 | Reasonable recorded gaps | Roundness discrimination, flat-roof coverage, configuration matrix and missing-column oracle coverage remain incomplete. | These limit assurance; no additional geometry defect established here. |
+| AC12, AC14 | Reasonable recorded gaps | Command-tree resend, preview recipients and removal are not independently asserted. | Missing regression coverage, not demonstrated broken behavior. |
+| AC17 | Partly resolved | N2’s scan is removed. Benchmark thresholds and multiple-owner/flat-roof measurements remain reasonable deferred coverage. | The claimed gate-log figure update is absent; see D1. |
+| AC18 | Reasonable recorded gap | Implementation remains consistent with vanilla clients; dedicated-server operation is exercised. | An unmodified client joining the server remains unverified. |
+| AC20, AC24 | Reasonable recorded gaps | Modded state variants and the hard ceiling lack discriminating tests. | No concrete new unsafe block path or ceiling bypass established. Forbidden-tag policy disclosure still needs D2. |
+| AC31 | Reasonable accepted gap | Deterministic ranking fixes encounter-order dependence. M38 selects the wrong family deliberately. | A complete revert can pass depending on encounter order; the resolution honestly acknowledges this. |
+
+### New findings
+
+No new server- or player-harming code regression found.
+
+| ID | Status | Evidence | Remaining problem |
+|---|---|---|---|
+| D1 | Documentation fix required | `docs/sdlc-log.md` ends the delivery gates at G5 and retains the older 9-tick/2.05 ms placement figures. The resolution claims current figures and known gaps are recorded under G6. | Add the actual G6 evidence and gaps, or retract the completion claims. `docs/mutation-report.md` also describes the previous M35 and stops at M38; distinguish historical results from unverified new mutants. |
+| D2 | Policy clarification required | `RoofService.redo` performs no material revalidation. README “Safety” and AC20 retain an unconditional forbidden-material guarantee. | Explicitly accept and document queued **and historical replay** exceptions, qualifying the guarantee; alternatively revalidate redo. This is a documentation/policy fix, not a demand to change the accepted queued-job design. |
+
+### Verdict
+
+**Approved with fixes (D1, D2).** Additional test coverage is recorded above as gaps, not release blockers.
+### After the final check
+
+D1: the gate log now has the G6 entry, the final G3 figures and the final G4 run. D2: redo checks every
+block it would build again (`RoofService.redo`), tested in `materialsAreCheckedAgainWhenBuilding` and by
+mutant M42; the safety promise stays unconditional. The redo-trim gap it named is closed by
+`HistoryTest.splitRedoEntriesStillRespectTheLimit` (mutant M41). **G6 Independent review: approved.**
