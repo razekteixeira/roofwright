@@ -32,15 +32,15 @@ jobs:
       - name: Build and test
         run: ./gradlew build
 
-      # No token here, so the plugin runs as a dry run: it checks the upload without sending anything.
-      - name: CurseForge dry run
-        run: ./gradlew publishCurseforge
-
       - name: Extract release notes from CHANGELOG.md
         run: |
           version=${GITHUB_REF_NAME#v}
           awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {found=1; next} found && /^## \[/ {exit} found {print}' CHANGELOG.md > build/release-notes.md
           test -s build/release-notes.md || { echo "No CHANGELOG.md section for $version"; exit 1; }
+
+      # No token here, so the plugin runs as a dry run: it checks the upload without sending anything.
+      - name: CurseForge dry run
+        run: ./gradlew publishCurseforge
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -82,6 +82,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      # The same jar and notes as the GitHub release, not a rebuild.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: release
+          path: release
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: temurin
@@ -97,4 +102,5 @@ jobs:
           if [ -n "$CURSEFORGE_TOKEN" ] && ! grep -qE '^curseforge_project_id=[0-9]+$' gradle.properties; then
             echo "CURSEFORGE_TOKEN is set but curseforge_project_id is not; this run is a dry run"
           fi
-          ./gradlew publishCurseforge
+          mkdir -p build && cp release/release-notes.md build/release-notes.md
+          ./gradlew publishCurseforge -PreleaseJar="release/libs/roofwright-${GITHUB_REF_NAME#v}.jar"

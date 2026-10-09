@@ -108,10 +108,14 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 
 	/** Resolves materials from one block, or explains why it cannot. */
 	public static Result resolve(Block block) {
+		// A block can be in several families (stone bricks are the base of their own and the "polished" variant
+		// of stone), and the family order is not stable. Prefer the family the block is the base of, then one
+		// where it is the stairs, slab or wall, then any other; ties go to the base block's id.
 		Optional<BlockFamily> family = BlockFamilies.getAllFamilies()
 				.filter(f -> f.getBaseBlock() == block || f.getVariants().containsValue(block))
 				.filter(f -> f.get(BlockFamily.Variant.STAIRS) != null && f.get(BlockFamily.Variant.SLAB) != null)
-				.findFirst();
+				.min(java.util.Comparator.comparingInt((BlockFamily f) -> familyRank(f, block))
+						.thenComparing(f -> id(f.getBaseBlock()).toString()));
 		if (family.isPresent()) {
 			BlockFamily f = family.get();
 			return Result.checked(new Materials(f.get(BlockFamily.Variant.STAIRS), f.get(BlockFamily.Variant.SLAB), f.getBaseBlock(),
@@ -130,6 +134,14 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 					+ ". Give all three: /roof material " + id + " <slab> <full block>");
 		}
 		return Result.checked(new Materials(block, slab, full, null));
+	}
+
+	private static int familyRank(BlockFamily family, Block block) {
+		if (family.getBaseBlock() == block) {
+			return 0;
+		}
+		return block == family.get(BlockFamily.Variant.STAIRS) || block == family.get(BlockFamily.Variant.SLAB)
+				|| block == family.get(BlockFamily.Variant.WALL) ? 1 : 2;
 	}
 
 	/** Explicit stairs, slab and full block, each checked for its kind. */

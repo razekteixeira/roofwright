@@ -125,13 +125,15 @@ tasks.register("benchmark", JavaExec) {
 
 // Publishing to CurseForge with modmuss50's mod-publish-plugin. Needs CURSEFORGE_TOKEN (the release
 // workflow passes a repository secret) and curseforge_project_id in gradle.properties. Without
-// either, it runs as a dry run: the upload is assembled under build/ but nothing leaves the machine.
-// Release notes come from build/release-notes.md, which the workflow extracts from CHANGELOG.md.
-def curseforgeToken = providers.environmentVariable("CURSEFORGE_TOKEN")
-def curseforgeProject = project.findProperty("curseforge_project_id")?.toString() ?: ""
+// either (an empty or blank token counts as missing), it runs as a dry run: nothing leaves the machine.
+// Release notes come from build/release-notes.md, which the workflow extracts from CHANGELOG.md, and
+// -PreleaseJar=<path> publishes the jar of the GitHub release instead of building a new one.
+def curseforgeToken = providers.environmentVariable("CURSEFORGE_TOKEN").map { it.trim() }.filter { !it.isEmpty() }
+def curseforgeProject = project.findProperty("curseforge_project_id")?.toString()?.trim() ?: ""
 def releaseNotes = file("build/release-notes.md")
+def releaseJar = project.findProperty("releaseJar")?.toString()
 publishMods {
-	file = jar.archiveFile
+	file = releaseJar ? layout.projectDirectory.file(releaseJar) : jar.archiveFile
 	displayName = "Roofwright ${project.version}"
 	type = project.version.contains("alpha") ? ALPHA
 			: (project.version.contains("beta") || project.version.contains("rc")) ? BETA : STABLE

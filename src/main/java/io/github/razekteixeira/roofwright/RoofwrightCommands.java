@@ -274,7 +274,8 @@ public final class RoofwrightCommands {
 		if (job != null) {
 			job.cancel();
 		}
-		String text = job != null ? "Stopped; the blocks already placed can be undone with /roof undo."
+		String text = job != null ? (job.kind() == PlacementJob.Kind.PLACE ? "Stopped; the blocks already placed can be undone with /roof undo."
+				: "Stopped; what was not reached yet can still be undone or redone.")
 				: hadPreview ? "Preview cleared." : "Nothing to cancel.";
 		c.getSource().sendSuccess(() -> Component.literal(text), false);
 		return job != null || hadPreview ? 1 : 0;

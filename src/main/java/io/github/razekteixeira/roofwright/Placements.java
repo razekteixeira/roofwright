@@ -46,10 +46,13 @@ public final class Placements {
 		int budget = settings.blocksPerTick();
 		long deadline = System.nanoTime() + settings.millisPerTick() * 1_000_000L;
 		Iterator<PlacementJob> it = JOBS.iterator();
+		boolean first = true;
 		while (it.hasNext()) {
 			PlacementJob job = it.next();
-			if (!job.isDone() && budget > 0) {
+			// The oldest job always gets a turn; the others only while budget and time are left.
+			if (!job.isDone() && budget > 0 && (first || System.nanoTime() < deadline)) {
 				budget -= job.tick(budget, deadline);
+				first = false;
 			}
 			if (job.isDone()) {
 				it.remove();
@@ -65,6 +68,12 @@ public final class Placements {
 		}
 		JOBS.remove(job);
 		job.finish();
+	}
+
+	/** One budgeted turn of a job outside the server tick (GameTests); returns the blocks it wrote. */
+	public static int step(PlacementJob job, int budget) {
+		job.tick(budget, Long.MAX_VALUE);
+		return job.lastTickWrites();
 	}
 
 	static void clear() {

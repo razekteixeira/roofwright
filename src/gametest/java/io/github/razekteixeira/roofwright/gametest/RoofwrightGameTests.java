@@ -404,6 +404,10 @@ public class RoofwrightGameTests {
 		Materials bricks = Materials.resolve(Blocks.STONE_BRICK_WALL).materials();
 		helper.assertTrue(bricks != null && bricks.full() == Blocks.STONE_BRICKS && bricks.wall() == Blocks.STONE_BRICK_WALL
 				&& bricks.stairs() == Blocks.STONE_BRICK_STAIRS, "stone bricks from the wall");
+		// Stone bricks are also a variant of the stone family; their own family must win every time.
+		Materials stoneBricks = Materials.resolve(Blocks.STONE_BRICKS).materials();
+		helper.assertTrue(stoneBricks != null && stoneBricks.full() == Blocks.STONE_BRICKS && stoneBricks.stairs() == Blocks.STONE_BRICK_STAIRS,
+				"stone bricks from stone bricks: " + stoneBricks);
 		Materials deepslate = Materials.resolve(Blocks.DEEPSLATE_TILE_SLAB).materials();
 		helper.assertTrue(deepslate != null && deepslate.full() == Blocks.DEEPSLATE_TILES, "deepslate tiles from the slab");
 		helper.assertTrue(Materials.resolve(Blocks.DIAMOND_BLOCK).materials() == null, "diamond blocks have no stairs");
@@ -714,6 +718,174 @@ public class RoofwrightGameTests {
 			server.getPlayerList().deop(player.nameAndId());
 		}
 		helper.assertBlockPresent(Blocks.SPRUCE_STAIRS, new BlockPos(2, TOP + 1, 1));
+		helper.succeed();
+	}
+
+	// --- G6 review fixes ------------------------------------------------------------------------------
+
+	/** F1: undo and redo steps pass the world checks too, not only claims: a border shrunk since counts. */
+	@GameTest
+	public void replayChecksTheWorldLimits(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		CommandSourceStack source = source(player);
+		PlacementJob placed = roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE), false);
+		Placements.runNow(RoofService.undo(source));
+		ServerLevel level = helper.getLevel();
+		net.minecraft.world.level.border.WorldBorder border = level.getWorldBorder();
+		double centerX = border.getCenterX();
+		double centerZ = border.getCenterZ();
+		double size = border.getSize();
+		PlacementJob redo;
+		// Synchronous on the server thread, so no other test sees the small border.
+		try {
+			BlockPos far = helper.absolutePos(new BlockPos(1000, 0, 1000));
+			border.setCenter(far.getX(), far.getZ());
+			border.setSize(16);
+			redo = RoofService.redo(source);
+			Placements.runNow(redo);
+		} finally {
+			border.setCenter(centerX, centerZ);
+			border.setSize(size);
+		}
+		helper.assertValueEqual(redo.placed(), 0, "nothing redone outside the border");
+		helper.assertValueEqual(redo.skipped().get(Protection.Verdict.OUTSIDE_WORLD), placed.placed(), "every block refused as outside the world");
+		helper.succeed();
+	}
+
+	/** F2: settling a wall at the edge of the loaded area never loads the chunk next to it. */
+	@GameTest
+	public void settlingNeverLoadsChunks(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+		int cx = origin.getX() >> 4;
+		int cz = origin.getZ() >> 4;
+		for (int i = 0; i < 256 && level.getChunkSource().hasChunk(cx - 1, cz); i++) {
+			cx--;
+		}
+		helper.assertTrue(level.getChunkSource().hasChunk(cx, cz) && !level.getChunkSource().hasChunk(cx - 1, cz),
+				"test setup: a loaded chunk with an unloaded west neighbour");
+		BlockPos edge = new BlockPos(cx << 4, origin.getY() + 30, (cz << 4) + 8);
+		helper.assertTrue(level.getBlockState(edge).isAir(), "test setup: air at " + edge);
+		PlacementJob job = new PlacementJob(PlacementJob.Kind.PLACE, java.util.UUID.randomUUID(), null, level, "test",
+				List.of(new PlacementJob.Step(edge, null, Blocks.COBBLESTONE_WALL.defaultBlockState(), true)), false, done -> {
+				});
+		Placements.runNow(job);
+		helper.assertFalse(level.getChunkSource().hasChunk(cx - 1, cz), "settling loaded the neighbouring chunk");
+		helper.assertValueEqual(job.placed(), 1, "the wall itself is placed");
+		level.setBlock(edge, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+		helper.succeed();
+	}
+
+	/** F3: walls and stairs are settled within the block budget, not all at once after the last block. */
+	@GameTest
+	public void settlingStaysWithinTheBlockBudget(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		CommandSourceStack source = source(builder(helper, GameType.CREATIVE));
+		RoofSession session = RoofService.session(source);
+		session.setSpec(RoofSpec.DEFAULTS.withStyle(RoofStyle.FLAT));
+		session.setMaterials(Materials.resolve(Blocks.STONE_BRICKS).materials());
+		RoofService.detect(source, helper.getLevel(), helper.absolutePos(new BlockPos(1, TOP, 1)));
+		PlacementJob job = RoofService.place(source, false);
+		int calls = 0;
+		int writes = 0;
+		while (!job.isDone()) {
+			int written = Placements.step(job, 5);
+			helper.assertTrue(written <= 5, written + " blocks written in one turn with a budget of 5");
+			writes += written;
+			calls++;
+		}
+		Placements.runNow(job);
+		helper.assertTrue(writes > job.placed(), "parapet walls were settled: " + writes + " writes for " + job.placed() + " blocks");
+		helper.assertTrue(calls >= writes / 5, writes + " writes in " + calls + " turns");
+		BlockPos wall = helper.absolutePos(new BlockPos(3, TOP + 1, 1));
+		helper.assertValueEqual(Block.updateFromNeighbourShapes(helper.getLevel().getBlockState(wall), helper.getLevel(), wall),
+				helper.getLevel().getBlockState(wall), "the parapet is connected");
+		helper.succeed();
+	}
+
+	/** F4: a stair beside a block that was skipped gets the shape vanilla gives it there. */
+	@GameTest
+	public void blockedNeighboursLeaveNoWrongCorners(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		helper.setBlock(new BlockPos(2, TOP + 1, 1), Blocks.STONE);
+		helper.setBlock(new BlockPos(1, TOP + 1, 2), Blocks.STONE);
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		PlacementJob job = roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.HIP).withOverhang(0), false);
+		helper.assertTrue(job.skipped().getOrDefault(Protection.Verdict.OCCUPIED, 0) >= 2, "the stones were skipped: " + job.skipped());
+		ServerLevel level = helper.getLevel();
+		int stairs = 0;
+		for (Journal.Change change : job.journal().changes()) {
+			BlockState placed = level.getBlockState(change.pos());
+			if (placed.hasProperty(StairBlock.SHAPE)) {
+				helper.assertValueEqual(Block.updateFromNeighbourShapes(placed, level, change.pos()), placed, "stair at " + change.pos());
+				stairs++;
+			}
+		}
+		helper.assertTrue(stairs > 10, "only " + stairs + " stairs");
+		helper.succeed();
+	}
+
+	/** F5: a cancelled undo keeps the part it never reached undoable; history follows what really ran. */
+	@GameTest
+	public void cancelledUndoKeepsTheRestUndoable(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		CommandSourceStack source = source(player);
+		PlacementJob placed = roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE), false);
+		RoofSession session = RoofService.session(source);
+		PlacementJob undo = RoofService.undo(source);
+		Placements.step(undo, 10);
+		undo.cancel();
+		Placements.runNow(undo);
+		helper.assertValueEqual(session.history().undoCount(), 1, "the rest of the roof can still be undone");
+		helper.assertValueEqual(session.history().redoCount(), 1, "the undone part can be redone");
+		Placements.runNow(RoofService.undo(source));
+		for (Journal.Change change : placed.journal().changes()) {
+			helper.assertValueEqual(helper.getLevel().getBlockState(change.pos()), change.before(), "undone " + change.pos());
+		}
+		helper.assertValueEqual(session.history().undoCount(), 0, "all undone");
+		Placements.runNow(RoofService.redo(source));
+		Placements.runNow(RoofService.redo(source));
+		for (Journal.Change change : placed.journal().changes()) {
+			helper.assertValueEqual(helper.getLevel().getBlockState(change.pos()), change.after(), "redone " + change.pos());
+		}
+		helper.assertValueEqual(session.history().redoCount(), 0, "nothing left to redo");
+		helper.succeed();
+	}
+
+	/** F6: materials are checked again when building, so stale or default choices cannot bypass the rules. */
+	@GameTest
+	public void materialsAreCheckedAgainWhenBuilding(GameTestHelper helper) {
+		walls(helper, square(1, 5));
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		RoofService.session(source(player)).setMaterials(new Materials(Blocks.OAK_STAIRS, Blocks.OAK_SLAB, Blocks.TNT, null));
+		try {
+			roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE), false);
+			helper.fail("TNT chosen earlier must still be refused");
+		} catch (PlanException expected) {
+			helper.assertTrue(expected.getMessage().contains("tnt"), expected.getMessage());
+		}
+		helper.assertBlockPresent(Blocks.AIR, new BlockPos(3, TOP, 0));
+		helper.succeed();
+	}
+
+	/** F8: no ghosts at Overworld coordinates while the player is in another dimension. */
+	@GameTest
+	public void previewNeedsTheSelectionsDimension(GameTestHelper helper) throws PlanException {
+		MinecraftServer server = helper.getLevel().getServer();
+		ServerLevel nether = server.getLevel(Level.NETHER);
+		helper.assertTrue(nether != null, "the Nether exists");
+		CommandSourceStack source = source(builder(helper, GameType.CREATIVE));
+		BlockPos corner = new BlockPos(0, 64, 0);
+		RoofService.selectRectangle(source, nether, corner, corner.offset(4, 0, 4), false);
+		try {
+			RoofService.preview(source);
+			helper.fail("a preview of a Nether selection from the Overworld must be refused");
+		} catch (PlanException expected) {
+			helper.assertTrue(expected.getMessage().contains("the_nether"), expected.getMessage());
+		}
+		helper.assertTrue(RoofService.session(source).preview() == null, "nothing shown");
 		helper.succeed();
 	}
 }

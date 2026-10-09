@@ -4,6 +4,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Undo and redo stacks for one player. A new entry clears the redo stack, as in every editor; the oldest
  * entries fall off when the history is full.
@@ -41,6 +43,43 @@ public final class History<T> {
 			done.push(entry);
 		}
 		return Optional.ofNullable(entry);
+	}
+
+	/** The operation {@link #undo} would take, left in place. */
+	public Optional<T> peekUndo() {
+		return Optional.ofNullable(done.peek());
+	}
+
+	/**
+	 * Ends an undo of {@code entry}, which must still be the latest operation (otherwise nothing changes).
+	 * {@code reverted}, the part that was taken back, moves to redo; {@code kept}, the part a cancelled undo
+	 * never reached, stays undoable. Either may be {@code null}.
+	 */
+	public void finishUndo(T entry, @Nullable T kept, @Nullable T reverted) {
+		if (done.peek() != entry) {
+			return;
+		}
+		done.pop();
+		if (kept != null) {
+			done.push(kept);
+		}
+		if (reverted != null) {
+			undone.push(reverted);
+		}
+	}
+
+	/** The same for redo: {@code reapplied} becomes undoable again, {@code kept} stays to redo. */
+	public void finishRedo(T entry, @Nullable T kept, @Nullable T reapplied) {
+		if (undone.peek() != entry) {
+			return;
+		}
+		undone.pop();
+		if (kept != null) {
+			undone.push(kept);
+		}
+		if (reapplied != null) {
+			done.push(reapplied);
+		}
 	}
 
 	/** The operation {@link #redo} would take, left in place. */

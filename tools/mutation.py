@@ -75,6 +75,23 @@ MUTANTS = [
      "L2: break rights ignored when replacing"),
     ("M30", "RoofService.java", "if (next.force() && !RoofwrightCommands.canForce(source)) {", "if (false) {",
      "L3: redo of a forced roof without the force permission"),
+    # G6 Independent review fixes.
+    ("M31", "PlacementJob.java", "Protection.Verdict verdict = Protection.check(level, pos, player, builder, true);\n\t\t\tif (verdict != Protection.Verdict.NONE) {",
+     "Protection.Verdict verdict = Protection.check(level, pos, player, builder, true);\n\t\t\tif (verdict == Protection.Verdict.PROTECTED) {",
+     "F1: undo and redo skip only claimed blocks"),
+    ("M32", "PlacementJob.java", " || !level.hasChunksAt(pos.offset(-1, 0, -1), pos.offset(1, 0, 1))", "",
+     "F2: settling reads unloaded neighbours"),
+    ("M33", "PlacementJob.java", "} else if (settleNext()) {\n\t\t\t\tdone++;",
+     "} else if (settleNext()) {\n\t\t\t\twhile (settleNext()) {\n\t\t\t\t}\n\t\t\t\tdone++;", "F3: settling ignores the block budget"),
+    ("M34", "RoofService.java", " || block.piece().kind() == Piece.Kind.STAIR;", ";", "F4: stairs keep planned shapes beside skipped blocks"),
+    ("M35", "RoofService.java", "int processed = Math.min(job.progress(), n);", "int processed = n;",
+     "F5: a cancelled undo moves the whole roof to redo"),
+    ("M36", "RoofService.java", "String problem = session.materials.problem();", "String problem = null;",
+     "F6: materials not checked again when building"),
+    ("M37", "RoofService.java", "if (player != null && session.level != null && !player.level().dimension().equals(session.level)) {",
+     "if (false) {", "F8: previews sent into another dimension"),
+    ("M38", "Materials.java", "if (family.getBaseBlock() == block) {\n\t\t\treturn 0;", "if (family.getBaseBlock() == block) {\n\t\t\treturn 2;",
+     "a block's own family does not win (stone bricks resolve to stone)"),
 ]
 
 

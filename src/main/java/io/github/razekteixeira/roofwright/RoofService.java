@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import io.github.razekteixeira.roofwright.core.Footprint;
 import io.github.razekteixeira.roofwright.core.FootprintDetector;
+import io.github.razekteixeira.roofwright.core.History;
 import io.github.razekteixeira.roofwright.core.Piece;
 import io.github.razekteixeira.roofwright.core.PlanException;
 import io.github.razekteixeira.roofwright.core.PlannedBlock;
@@ -175,7 +176,15 @@ public final class RoofService {
 		}
 		RoofPlan plan = RoofPlanner.plan(footprint, session.spec);
 		requireWithinLimit(source, plan.size());
+		// Checked again here, not only when chosen: defaults, and a data pack may have changed the tag since.
+		String problem = session.materials.problem();
 		BlockState gable = gableState(session);
+		if (problem == null) {
+			problem = Materials.problem(gable, true);
+		}
+		if (problem != null) {
+			throw new PlanException("Cannot build with these blocks: " + problem + ". Choose others with /roof material or /roof gable.");
+		}
 		Map<Long, Integer> highest = new HashMap<>();
 		for (PlannedBlock block : plan.blocks()) {
 			highest.merge(((long) block.x() << 32) | (block.z() & 0xffffffffL), block.y(), Math::max);
@@ -186,7 +195,9 @@ public final class RoofService {
 			BlockPos pos = new BlockPos(block.x(), block.y(), block.z());
 			BlockState state = block.role() == Role.GABLE ? gable : session.materials.state(block.piece());
 			boolean surface = highest.get(((long) block.x() << 32) | (block.z() & 0xffffffffL)) == block.y();
-			targets.add(new Target(pos, state, Protection.check(level, pos, player, force), block.piece().kind() == Piece.Kind.WALL, surface));
+			// Walls connect and stairs take their corner shape from what is really placed around them.
+			boolean settle = block.piece().kind() == Piece.Kind.WALL || block.piece().kind() == Piece.Kind.STAIR;
+			targets.add(new Target(pos, state, Protection.check(level, pos, player, force), settle, surface));
 		}
 		return new Prepared(plan, level, targets);
 	}
@@ -214,9 +225,12 @@ public final class RoofService {
 
 	/** Plans and shows the roof to a player, with a one-line summary. */
 	public static void preview(CommandSourceStack source) throws PlanException {
-		Prepared prepared = prepare(source, false);
 		ServerPlayer player = source.getPlayer();
 		RoofSession session = session(source);
+		if (player != null && session.level != null && !player.level().dimension().equals(session.level)) {
+			throw new PlanException("Your selection is in " + session.level.identifier() + "; go back there or select a building here.");
+		}
+		Prepared prepared = prepare(source, false);
 		Preview.Shown shown = player != null ? Preview.show(player, session, prepared, RoofwrightConfig.get()) : null;
 		source.sendSuccess(() -> summary(session, prepared, shown), false);
 	}
@@ -277,7 +291,7 @@ public final class RoofService {
 	public static PlacementJob undo(CommandSourceStack source) throws PlanException {
 		UUID owner = ownerOf(source);
 		requireIdle(owner);
-		Journal journal = session(source).history.undo()
+		Journal journal = session(source).history.peekUndo()
 				.orElseThrow(() -> new PlanException("Nothing to undo."));
 		List<PlacementJob.Step> steps = new ArrayList<>(journal.changes().size());
 		for (int i = journal.changes().size() - 1; i >= 0; i--) {
@@ -297,7 +311,7 @@ public final class RoofService {
 			throw new PlanException("That roof replaced other blocks; redoing it needs the roofwright.force permission.");
 		}
 		requireWithinLimit(source, next.changes().size());
-		Journal journal = session.history.redo().orElseThrow(() -> new PlanException("Nothing to redo."));
+		Journal journal = next;
 		List<PlacementJob.Step> steps = new ArrayList<>(journal.changes().size());
 		for (Journal.Change change : journal.changes()) {
 			steps.add(new PlacementJob.Step(change.pos(), change.before(), change.after(), false));
@@ -311,9 +325,33 @@ public final class RoofService {
 		if (level == null) {
 			throw new PlanException("That roof is in a world that is not loaded.");
 		}
-		PlacementJob job = new PlacementJob(kind, owner, source.getPlayer(), level, journal.label(), steps, false, done -> finished(source.getServer(), done));
+		// History moves only when the job ends, by what it really did, so a cancelled undo or redo leaves
+		// the part it never reached where it was.
+		PlacementJob job = new PlacementJob(kind, owner, source.getPlayer(), level, journal.label(), steps, false, done -> {
+			settleHistory(session(owner).history, journal, done);
+			finished(source.getServer(), done);
+		});
 		Placements.start(job);
 		return job;
+	}
+
+	/** Splits the journal at the job's progress: undo runs from the end backwards, redo from the start. */
+	static void settleHistory(History<Journal> history, Journal journal, PlacementJob job) {
+		List<Journal.Change> changes = journal.changes();
+		int n = changes.size();
+		int processed = Math.min(job.progress(), n);
+		if (processed == 0) {
+			return;
+		}
+		if (job.kind() == PlacementJob.Kind.UNDO) {
+			history.finishUndo(journal, processed == n ? null : part(journal, 0, n - processed), part(journal, n - processed, n));
+		} else {
+			history.finishRedo(journal, processed == n ? null : part(journal, processed, n), part(journal, 0, processed));
+		}
+	}
+
+	private static Journal part(Journal journal, int from, int to) {
+		return new Journal(journal.level(), journal.label(), journal.force(), journal.changes().subList(from, to));
 	}
 
 	private static UUID ownerOf(CommandSourceStack source) {

@@ -62,4 +62,25 @@ class HistoryTest {
 		assertEquals(1, history.redoCount(), "peeking takes nothing");
 		assertEquals(Optional.of("a"), history.redo());
 	}
+
+	@Test
+	void finishUndoSplitsAnInterruptedUndo() {
+		History<String> history = new History<>();
+		history.record("roof", 3);
+		history.finishUndo("roof", "front half", "back half");
+		assertEquals(Optional.of("front half"), history.peekUndo(), "the part never reached stays undoable");
+		assertEquals(Optional.of("back half"), history.peekRedo(), "the undone part can be redone");
+		history.finishUndo("someone else", null, "x");
+		assertEquals(1, history.undoCount(), "only the latest entry can be finished");
+	}
+
+	@Test
+	void finishRedoSplitsAnInterruptedRedo() {
+		History<String> history = new History<>();
+		history.record("roof", 3);
+		history.finishUndo("roof", null, "roof");
+		history.finishRedo("roof", "rest", "start");
+		assertEquals(Optional.of("start"), history.peekUndo());
+		assertEquals(Optional.of("rest"), history.peekRedo());
+	}
 }
