@@ -94,4 +94,16 @@ class HistoryTest {
 		assertEquals(1, history.redoCount(), "redo keeps at most one entry");
 		assertEquals(Optional.of("part 2"), history.peekRedo(), "the newest split stays");
 	}
+
+	@Test
+	void splitRedoEntriesStillRespectTheLimit() {
+		History<String> history = new History<>();
+		history.record("roof", 1);
+		// Undo half, then redo half of that: the redone part lands on top of the half never undone.
+		history.finishUndo("roof", "kept", "undone", 1);
+		history.finishRedo("undone", "rest", "redone", 1);
+		assertEquals(1, history.undoCount(), "undo keeps at most one entry after a split redo");
+		assertEquals(Optional.of("redone"), history.peekUndo(), "the newest stays");
+		assertEquals(1, history.redoCount());
+	}
 }

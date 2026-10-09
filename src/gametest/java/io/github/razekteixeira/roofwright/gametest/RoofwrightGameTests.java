@@ -867,7 +867,7 @@ public class RoofwrightGameTests {
 
 	/** F6: materials are checked again when building, so stale or default choices cannot bypass the rules. */
 	@GameTest
-	public void materialsAreCheckedAgainWhenBuilding(GameTestHelper helper) {
+	public void materialsAreCheckedAgainWhenBuilding(GameTestHelper helper) throws PlanException {
 		walls(helper, square(1, 5));
 		ServerPlayer player = builder(helper, GameType.CREATIVE);
 		RoofService.session(source(player)).setMaterials(new Materials(Blocks.OAK_STAIRS, Blocks.OAK_SLAB, Blocks.TNT, null));
@@ -878,6 +878,21 @@ public class RoofwrightGameTests {
 			helper.assertTrue(expected.getMessage().contains("tnt"), expected.getMessage());
 		}
 		helper.assertBlockPresent(Blocks.AIR, new BlockPos(3, TOP, 0));
+
+		// Redo checks again too: a journal holding a block that is forbidden now is refused.
+		CommandSourceStack source = source(player);
+		BlockPos spot = helper.absolutePos(new BlockPos(3, TOP + 3, 3));
+		RoofSession session = RoofService.session(source);
+		session.history().record(new Journal(helper.getLevel().dimension(), "old roof", false,
+				List.of(new Journal.Change(spot, Blocks.AIR.defaultBlockState(), Blocks.TNT.defaultBlockState()))), 10);
+		session.history().undo();
+		try {
+			RoofService.redo(source);
+			helper.fail("redo of a now forbidden block must be refused");
+		} catch (PlanException expected) {
+			helper.assertTrue(expected.getMessage().contains("tnt"), expected.getMessage());
+		}
+		helper.assertBlockPresent(Blocks.AIR, new BlockPos(3, TOP + 3, 3));
 		helper.succeed();
 	}
 

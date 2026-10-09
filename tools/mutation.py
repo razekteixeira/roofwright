@@ -95,6 +95,10 @@ MUTANTS = [
      "if (false) {\n\t\t\treturn true;", "N1: settling writes without checking rights again"),
     ("M40", "core/History.java", "\t\ttrim(limit);\n\t}\n\n\t/** The same for redo", "\t}\n\n\t/** The same for redo",
      "N3: split undo entries ignore historySize"),
+    ("M41", "core/History.java", "\t\ttrim(limit);\n\t}\n\n\t/** Split entries", "\t}\n\n\t/** Split entries",
+     "N3: split redo entries ignore historySize"),
+    ("M42", "RoofService.java", "String problem = state.isAir() ? null : Materials.problem(state, false);", "String problem = null;",
+     "D2: redo builds blocks forbidden since"),
     ("M38", "Materials.java", "if (family.getBaseBlock() == block) {\n\t\t\treturn 0;", "if (family.getBaseBlock() == block) {\n\t\t\treturn 2;",
      "a block's own family does not win (stone bricks resolve to stone)"),
 ]

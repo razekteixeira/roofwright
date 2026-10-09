@@ -311,6 +311,13 @@ public final class RoofService {
 			throw new PlanException("That roof replaced other blocks; redoing it needs the roofwright.force permission.");
 		}
 		requireWithinLimit(source, next.changes().size());
+		// A block may have become forbidden (data pack) since the roof was built: redo builds it again.
+		for (BlockState state : next.changes().stream().map(Journal.Change::after).distinct().toList()) {
+			String problem = state.isAir() ? null : Materials.problem(state, false);
+			if (problem != null) {
+				throw new PlanException("Cannot redo that roof: " + problem + ".");
+			}
+		}
 		Journal journal = next;
 		List<PlacementJob.Step> steps = new ArrayList<>(journal.changes().size());
 		for (Journal.Change change : journal.changes()) {

@@ -92,9 +92,12 @@ See research.md for sources. The decisions:
 | AC26 | Walls and stairs settle after placement within the block budget, never reading an unloaded neighbour. (G6 F2, F3) | GameTests `settlingStaysWithinTheBlockBudget`, `settlingNeverLoadsChunks`. |
 | AC27 | A stair beside a skipped block gets the shape vanilla gives it there. (G6 F4) | GameTest `blockedNeighboursLeaveNoWrongCorners`. |
 | AC28 | Undo and redo move history by what really ran; a cancelled one leaves the rest undoable or redoable. (G6 F5) | GameTest `cancelledUndoKeepsTheRestUndoable`; `HistoryTest.finishUndoSplitsAnInterruptedUndo`, `finishRedoSplitsAnInterruptedRedo`. |
-| AC29 | Materials and gable walls are checked again when a roof is planned, defaults included. (G6 F6) | GameTest `materialsAreCheckedAgainWhenBuilding`. |
+| AC29 | Materials and gable walls are checked again when a roof is planned (defaults included) and when it is redone. (G6 F6, D2) | GameTest `materialsAreCheckedAgainWhenBuilding`. |
 | AC30 | No preview is sent while the player is in another dimension than the selection. (G6 F8) | GameTest `previewNeedsTheSelectionsDimension`. |
 | AC31 | A block resolves to its own family first (stone bricks never become stone). | GameTest `materialsResolveFromAnyFamilyMember`. |
+| AC32 | Settling checks the builder's rights again before each write. (G6 N1) | GameTest `settlingRechecksProtection`. |
+| AC33 | A job with nothing to settle ends with its last block; settling never scans unrelated changes. (G6 N2) | GameTest `jobsWithoutSettlingEndWithTheirLastBlock`. |
+| AC34 | Undo and redo move history by the blocks they really wrote; blocks they could not touch yet stay where they were, and split entries respect `historySize`. (G6 F5, N3) | GameTest `blockedUndoKeepsTheRoofUndoable`; `HistoryTest.splitEntriesStillRespectTheLimit`. |
 
 ### Scope boundary
 

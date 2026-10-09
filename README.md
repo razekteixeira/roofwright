@@ -167,11 +167,11 @@ Measured on an Apple M-series Mac, warmed up, repeated readings:
 
 - **Planning** ([`./gradlew benchmark`](src/test/java/io/github/razekteixeira/roofwright/core/PlannerBenchmark.java)):
   a 64 x 64 hip roof takes a median 1.1 ms, 128 x 128 takes 3.8 ms, and 256 x 256 (66,564 blocks)
-  takes 17.6 ms (15 runs after warm-up).
+  takes 17.6 ms (15 runs after warm-up; max 24.8 ms).
 - **Placing** ([`tools/benchmark.sh`](tools/benchmark.sh), dev server over RCON): a 16,900-block hip
   roof over a 128 x 128 house goes up in 17 ticks with the default budget (placing, then settling
-  every stair and wall against its real neighbours); the worst tick of each run has a median of
-  3.60 ms (max 4.84 ms over 5 runs), inside the 5 ms `millisPerTick` budget.
+  every stair and wall against its real neighbours, with claims checked again); the worst tick of
+  each run is 5.00 ms (5 runs): the 5 ms `millisPerTick` budget is what ends each tick.
 
 The two big cases are wider than the default `maxSpan` (96) and `maxBlocks` (30,000): the benchmark
 runs them as an operator over RCON, to show the cost of the largest roofs an owner can allow.
