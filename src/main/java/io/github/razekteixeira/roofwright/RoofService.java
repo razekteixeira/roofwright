@@ -328,30 +328,46 @@ public final class RoofService {
 		// History moves only when the job ends, by what it really did, so a cancelled undo or redo leaves
 		// the part it never reached where it was.
 		PlacementJob job = new PlacementJob(kind, owner, source.getPlayer(), level, journal.label(), steps, false, done -> {
-			settleHistory(session(owner).history, journal, done);
+			settleHistory(session(owner).history, journal, done, RoofwrightConfig.get().historySize());
 			finished(source.getServer(), done);
 		});
 		Placements.start(job);
 		return job;
 	}
 
-	/** Splits the journal at the job's progress: undo runs from the end backwards, redo from the start. */
-	static void settleHistory(History<Journal> history, Journal journal, PlacementJob job) {
+	/**
+	 * Moves history by what the job really did: changes it wrote go to the other stack; changes it never
+	 * reached (cancelled) or could not write yet (claims, border, unloaded chunks) stay where they were;
+	 * changes someone else edited since are dropped, as they no longer belong to this roof. Undo runs the
+	 * journal from the end backwards, redo from the start.
+	 */
+	static void settleHistory(History<Journal> history, Journal journal, PlacementJob job, int limit) {
 		List<Journal.Change> changes = journal.changes();
 		int n = changes.size();
-		int processed = Math.min(job.progress(), n);
-		if (processed == 0) {
+		List<Journal.Change> moved = new ArrayList<>();
+		List<Journal.Change> kept = new ArrayList<>();
+		for (int c = 0; c < n; c++) {
+			int step = job.kind() == PlacementJob.Kind.UNDO ? n - 1 - c : c;
+			if (job.wasApplied(step)) {
+				moved.add(changes.get(c));
+			} else if (step >= job.progress() || job.wasRetryable(step)) {
+				kept.add(changes.get(c));
+			}
+		}
+		if (kept.size() == n) {
 			return;
 		}
+		Journal movedPart = moved.isEmpty() ? null : part(journal, moved);
+		Journal keptPart = kept.isEmpty() ? null : part(journal, kept);
 		if (job.kind() == PlacementJob.Kind.UNDO) {
-			history.finishUndo(journal, processed == n ? null : part(journal, 0, n - processed), part(journal, n - processed, n));
+			history.finishUndo(journal, keptPart, movedPart, limit);
 		} else {
-			history.finishRedo(journal, processed == n ? null : part(journal, processed, n), part(journal, 0, processed));
+			history.finishRedo(journal, keptPart, movedPart, limit);
 		}
 	}
 
-	private static Journal part(Journal journal, int from, int to) {
-		return new Journal(journal.level(), journal.label(), journal.force(), journal.changes().subList(from, to));
+	private static Journal part(Journal journal, List<Journal.Change> changes) {
+		return new Journal(journal.level(), journal.label(), journal.force(), changes);
 	}
 
 	private static UUID ownerOf(CommandSourceStack source) {

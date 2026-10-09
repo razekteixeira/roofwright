@@ -899,4 +899,105 @@ public class RoofwrightGameTests {
 		helper.assertTrue(RoofService.session(source).preview() == null, "nothing shown");
 		helper.succeed();
 	}
+
+	/** N1: rights are checked again before settling: a claim made after placing keeps its blocks as they are. */
+	@GameTest
+	public void settlingRechecksProtection(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		CommandSourceStack source = source(builder(helper, GameType.CREATIVE));
+		RoofSession session = RoofService.session(source);
+		session.setSpec(RoofSpec.DEFAULTS.withStyle(RoofStyle.FLAT));
+		session.setMaterials(Materials.resolve(Blocks.STONE_BRICKS).materials());
+		RoofService.detect(source, helper.getLevel(), helper.absolutePos(new BlockPos(1, TOP, 1)));
+		PlacementJob job = RoofService.place(source, false);
+		while (job.progress() < job.total()) {
+			Placements.step(job, 1);
+		}
+		AABB claim = new AABB(Vec3.atCenterOf(helper.absolutePos(new BlockPos(-2, 0, -2))), Vec3.atCenterOf(helper.absolutePos(new BlockPos(8, 8, 8))));
+		Identifier id = Identifier.fromNamespaceAndPath("roofwright-gametest", "late-claim-" + helper.absolutePos(BlockPos.ZERO).asLong());
+		CommonProtection.register(id, new ProtectionProvider() {
+			@Override
+			public boolean isProtected(Level level, BlockPos pos) {
+				return claim.contains(Vec3.atCenterOf(pos));
+			}
+
+			@Override
+			public boolean isAreaProtected(Level level, AABB area) {
+				return claim.intersects(area);
+			}
+
+			@Override
+			public boolean canPlaceBlock(Level level, BlockPos pos, net.minecraft.server.players.NameAndId profile,
+					net.minecraft.world.entity.player.Player player) {
+				return !isProtected(level, pos);
+			}
+		});
+		try {
+			Placements.runNow(job);
+		} finally {
+			CommonProtection.remove(id);
+		}
+		helper.assertValueEqual(helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(3, TOP + 1, 1))),
+				Blocks.STONE_BRICK_WALL.defaultBlockState(), "the parapet inside the new claim stays as placed");
+		helper.succeed();
+	}
+
+	/** N2: a job with nothing to settle ends with its last block, without a scan of everything it placed. */
+	@GameTest
+	public void jobsWithoutSettlingEndWithTheirLastBlock(GameTestHelper helper) {
+		List<PlacementJob.Step> steps = new ArrayList<>();
+		for (int x = 0; x < 5; x++) {
+			steps.add(new PlacementJob.Step(helper.absolutePos(new BlockPos(x, 1, 0)), null, Blocks.STONE.defaultBlockState(), false));
+		}
+		PlacementJob job = new PlacementJob(PlacementJob.Kind.PLACE, java.util.UUID.randomUUID(), null, helper.getLevel(), "test", steps, false, done -> {
+		});
+		helper.assertValueEqual(Placements.step(job, 5), 5, "five blocks in one turn");
+		helper.assertTrue(job.isDone(), "done right after the last block");
+		Placements.runNow(job);
+		helper.succeed();
+	}
+
+	/** F5: an undo that a claim stops keeps those blocks undoable instead of dropping them from history. */
+	@GameTest
+	public void blockedUndoKeepsTheRoofUndoable(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		CommandSourceStack source = source(player);
+		PlacementJob placed = roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE), false);
+		AABB claim = new AABB(Vec3.atCenterOf(helper.absolutePos(new BlockPos(4, 0, -2))), Vec3.atCenterOf(helper.absolutePos(new BlockPos(8, 8, 8))));
+		Identifier id = Identifier.fromNamespaceAndPath("roofwright-gametest", "no-break-" + helper.absolutePos(BlockPos.ZERO).asLong());
+		CommonProtection.register(id, new ProtectionProvider() {
+			@Override
+			public boolean isProtected(Level level, BlockPos pos) {
+				return claim.contains(Vec3.atCenterOf(pos));
+			}
+
+			@Override
+			public boolean isAreaProtected(Level level, AABB area) {
+				return claim.intersects(area);
+			}
+
+			@Override
+			public boolean canBreakBlock(Level level, BlockPos pos, net.minecraft.server.players.NameAndId profile,
+					net.minecraft.world.entity.player.Player player) {
+				return !isProtected(level, pos);
+			}
+		});
+		RoofSession session = RoofService.session(source);
+		try {
+			PlacementJob undo = RoofService.undo(source);
+			Placements.runNow(undo);
+			helper.assertTrue(undo.placed() > 0 && undo.skipped().getOrDefault(Protection.Verdict.PROTECTED, 0) > 0,
+					"half undone, half protected: " + undo.placed() + " " + undo.skipped());
+			helper.assertValueEqual(session.history().undoCount(), 1, "the protected half can still be undone");
+			helper.assertValueEqual(session.history().redoCount(), 1, "the undone half can be redone");
+		} finally {
+			CommonProtection.remove(id);
+		}
+		Placements.runNow(RoofService.undo(source));
+		for (Journal.Change change : placed.journal().changes()) {
+			helper.assertValueEqual(helper.getLevel().getBlockState(change.pos()), change.before(), "undone " + change.pos());
+		}
+		helper.succeed();
+	}
 }

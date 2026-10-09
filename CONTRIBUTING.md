@@ -74,7 +74,8 @@ project ID) is in [`branding/curseforge-listing.md`](branding/curseforge-listing
 2. Set `curseforge_project_id` in `gradle.properties` once the project exists, and the
    `CURSEFORGE_TOKEN` repository secret.
 3. Tag `vX.Y.Z` and push the tag. The release workflow builds, runs every test, creates the GitHub
-   release and uploads to CurseForge when the token is set.
+   release and uploads the same jar to CurseForge when both the token and the project id are set;
+   otherwise that job is a dry run.
 4. `./gradlew publishCurseforge` without a token or project id is a dry run: it assembles the upload
    under `build/publishMods/` without sending anything.
 

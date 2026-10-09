@@ -24,8 +24,10 @@ First public release, for Minecraft 26.3 on Fabric.
 - Wand built from a vanilla stick: right-click a wall top to preview, sneak + right-click to build,
   left-click to change style or pitch.
 - Ghost preview with block display entities sent to the builder only; blocks in the way shown in red.
-- Placement spread over ticks within a block and time budget; undo and redo that skip blocks
-  changed since; `/roof cancel`.
+- Placement spread over ticks within a block and time budget; after placing, stairs and walls settle
+  against what was really placed (a stair beside a skipped block takes the shape vanilla gives it).
+- Undo and redo that skip blocks changed since and pass the same checks as placing; `/roof cancel`,
+  which leaves the part of an undo or redo it never reached in the history.
 - Safety: air only unless `force` (never block entities or unbreakable blocks), claims through the
   Common Protection API (bundled, place and break rights), spawn protection, adventure mode, world
   border, per-roof limits checked before any work, no chunk loading.

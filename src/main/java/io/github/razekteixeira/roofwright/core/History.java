@@ -55,7 +55,7 @@ public final class History<T> {
 	 * {@code reverted}, the part that was taken back, moves to redo; {@code kept}, the part a cancelled undo
 	 * never reached, stays undoable. Either may be {@code null}.
 	 */
-	public void finishUndo(T entry, @Nullable T kept, @Nullable T reverted) {
+	public void finishUndo(T entry, @Nullable T kept, @Nullable T reverted, int limit) {
 		if (done.peek() != entry) {
 			return;
 		}
@@ -66,10 +66,11 @@ public final class History<T> {
 		if (reverted != null) {
 			undone.push(reverted);
 		}
+		trim(limit);
 	}
 
 	/** The same for redo: {@code reapplied} becomes undoable again, {@code kept} stays to redo. */
-	public void finishRedo(T entry, @Nullable T kept, @Nullable T reapplied) {
+	public void finishRedo(T entry, @Nullable T kept, @Nullable T reapplied, int limit) {
 		if (undone.peek() != entry) {
 			return;
 		}
@@ -79,6 +80,17 @@ public final class History<T> {
 		}
 		if (reapplied != null) {
 			done.push(reapplied);
+		}
+		trim(limit);
+	}
+
+	/** Split entries count like any other: each stack keeps at most {@code limit}, oldest dropped first. */
+	private void trim(int limit) {
+		while (done.size() > Math.max(0, limit)) {
+			done.removeLast();
+		}
+		while (undone.size() > Math.max(0, limit)) {
+			undone.removeLast();
 		}
 	}
 

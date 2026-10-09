@@ -59,11 +59,15 @@ public final class PlacementJob {
 	private final List<Step> steps;
 	private final boolean force;
 	private final Consumer<PlacementJob> onDone;
-	private final java.util.Set<BlockPos> settle = new java.util.HashSet<>();
 	private final List<Journal.Change> changes = new ArrayList<>();
+	/** Indices into {@link #changes} of placed blocks to settle, in placing order. */
+	private final List<Integer> toSettle = new ArrayList<>();
+	/** Steps that were written, and steps skipped for a reason that may pass later (claims, border, chunks). */
+	private final java.util.BitSet applied = new java.util.BitSet();
+	private final java.util.BitSet retryable = new java.util.BitSet();
 	private final Map<Protection.Verdict, Integer> skipped = new EnumMap<>(Protection.Verdict.class);
 	private int next;
-	/** Next entry of {@link #changes} to settle, once every step has run. */
+	/** Next entry of {@link #toSettle}, once every step has run. */
 	private int nextSettle;
 	private int lastTickWrites;
 	private int conflicts;
@@ -94,11 +98,6 @@ public final class PlacementJob {
 		this.level = level;
 		this.label = label;
 		this.steps = List.copyOf(steps);
-		for (Step step : steps) {
-			if (step.settle()) {
-				settle.add(step.pos());
-			}
-		}
 		this.force = force;
 		this.onDone = onDone;
 	}
@@ -117,9 +116,9 @@ public final class PlacementJob {
 		lastTickWrites = 0;
 		while (done < maxBlocks && (done == 0 || System.nanoTime() < deadline)) {
 			if (next < steps.size()) {
-				apply(steps.get(next++), player);
+				apply(next++, player);
 				done++;
-			} else if (settleNext()) {
+			} else if (settleNext(player)) {
 				done++;
 			} else {
 				break;
@@ -133,10 +132,12 @@ public final class PlacementJob {
 		return done;
 	}
 
-	private void apply(Step step, @Nullable ServerPlayer player) {
+	private void apply(int index, @Nullable ServerPlayer player) {
+		Step step = steps.get(index);
 		BlockPos pos = step.pos();
 		if (!level.isLoaded(pos)) {
 			skip(Protection.Verdict.NOT_LOADED);
+			retryable.set(index);
 			return;
 		}
 		BlockState current = level.getBlockState(pos);
@@ -150,18 +151,24 @@ public final class PlacementJob {
 			Protection.Verdict verdict = Protection.check(level, pos, player, builder, true);
 			if (verdict != Protection.Verdict.NONE) {
 				skip(verdict);
+				retryable.set(index);
 				return;
 			}
 		} else {
 			Protection.Verdict verdict = Protection.check(level, pos, player, builder, force);
 			if (verdict != Protection.Verdict.NONE) {
 				skip(verdict);
+				retryable.set(index);
 				return;
 			}
 		}
 		if (level.setBlock(pos, step.target(), FLAGS)) {
 			lastTickWrites++;
+			applied.set(index);
 			changes.add(new Journal.Change(pos.immutable(), current, step.target()));
+			if (step.settle()) {
+				toSettle.add(changes.size() - 1);
+			}
 		}
 	}
 
@@ -172,17 +179,18 @@ public final class PlacementJob {
 	 *
 	 * @return whether a block was checked; false when nothing is left to settle
 	 */
-	private boolean settleNext() {
-		while (nextSettle < changes.size() && !needsSettling(changes.get(nextSettle))) {
-			nextSettle++;
-		}
-		if (nextSettle >= changes.size()) {
+	private boolean settleNext(@Nullable ServerPlayer player) {
+		if (nextSettle >= toSettle.size()) {
 			return false;
 		}
-		int i = nextSettle++;
+		int i = toSettle.get(nextSettle++);
 		Journal.Change change = changes.get(i);
 		BlockPos pos = change.pos();
-		if (!level.hasChunksAt(pos.offset(-1, 0, -1), pos.offset(1, 0, 1)) || level.getBlockState(pos) != change.after()) {
+		if (!loadedAround(pos) || level.getBlockState(pos) != change.after()) {
+			return true;
+		}
+		// Rights may have changed since the block was placed (claims, game mode, world border).
+		if (Protection.check(level, pos, player, builder, true) != Protection.Verdict.NONE) {
 			return true;
 		}
 		BlockState settled = Block.updateFromNeighbourShapes(change.after(), level, pos);
@@ -194,8 +202,16 @@ public final class PlacementJob {
 		return true;
 	}
 
-	private boolean needsSettling(Journal.Change change) {
-		return settle.contains(change.pos());
+	/** Whether the chunks holding a block and its four horizontal neighbours are loaded. */
+	private boolean loadedAround(BlockPos pos) {
+		for (int cx = (pos.getX() - 1) >> 4; cx <= (pos.getX() + 1) >> 4; cx++) {
+			for (int cz = (pos.getZ() - 1) >> 4; cz <= (pos.getZ() + 1) >> 4; cz++) {
+				if (!level.hasChunk(cx, cz)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	private void skip(Protection.Verdict verdict) {
@@ -207,7 +223,17 @@ public final class PlacementJob {
 	}
 
 	public boolean isDone() {
-		return cancelled || next >= steps.size() && nextSettle >= changes.size();
+		return cancelled || next >= steps.size() && nextSettle >= toSettle.size();
+	}
+
+	/** Whether step {@code index} was written. */
+	public boolean wasApplied(int index) {
+		return applied.get(index);
+	}
+
+	/** Whether step {@code index} was skipped for a reason that may pass later (claims, border, chunks). */
+	public boolean wasRetryable(int index) {
+		return retryable.get(index);
 	}
 
 	/** Blocks written in the last {@link #tick} call, settle writes included. */
