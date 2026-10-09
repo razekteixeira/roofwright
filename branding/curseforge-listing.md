@@ -60,8 +60,10 @@ Upload in this order; mark the first one as featured. All are real captures from
 3. Tag the release: `git tag v1.0.0-beta.1 && git push origin v1.0.0-beta.1`. The workflow checks the
    tag matches `gradle.properties`, builds, runs every test, creates the GitHub release and uploads
    the jar to CurseForge as a beta (game version 26.3, Java 25, Fabric, client + server, requires
-   Fabric API). Without the token it stops after the GitHub release; `./gradlew publishCurseforge`
-   without a token or project ID is a dry run.
+   Fabric API). Without the token, or without a project ID, the CurseForge job runs as a dry run
+   and uploads nothing; `./gradlew publishCurseforge` without a token or project ID is a dry run too.
+   The CurseForge job publishes the same jar and release notes as the GitHub release.
 4. The file shows as "Under review" until a CurseForge moderator approves it.
-5. After approval, add the CurseForge downloads badge to the README
+5. After approval, point the site's "Download" buttons and footer link (`site/index.html`, now the
+   GitHub releases page) at curseforge.com/minecraft/mc-mods/roofwright, and add the CurseForge downloads badge to the README
    (`https://img.shields.io/curseforge/dt/<project id>?logo=curseforge&label=CurseForge`).

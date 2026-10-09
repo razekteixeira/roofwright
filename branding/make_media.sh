@@ -47,6 +47,9 @@ ffmpeg -loglevel error -y -framerate 10 -i "$frames/%03d.png" \
 	-vf "crop=1280:720:320:200,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=160[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" \
 	-loop 0 "$media/grow.gif"
 
+# The 3D logo for the hero (rendered by branding/render_logo3d.py).
+cp branding/logo3d.png "$media/logo3d.png"
+
 for f in "$media"/*.png; do
 	magick "$f" -strip -define png:compression-level=9 "$f"
 done

@@ -21,7 +21,7 @@ behind every decision here: [research.md](research.md).
 | Delivery posture | Incremental: pure core first with unit tests, then platform layer with GameTests, then visuals and site. |
 | Team | Software delivery composition, solo operator in series (Architect, Implementation, QA, Security, Release) with fresh-context subagents for research slices (R2), claim verification (R3), sceptic (R4) and the G6 Independent review. UX profile joins for the site and in-game messages (`uiSurface: yes`). |
 | Lessons applied (from Throughput) | Lenient read and strict write config codecs with clamping and warnings, never overwrite a broken config, `/roof reload`. Bundle fabric-permissions-api 0.7.0 with `PermissionLevel` overloads and resend command trees after reload. Measure the operation itself, warmed up, repeated readings. GameTests start from a fresh world. Mutants must be killed by a named test. Visual check of real captures in review. Hide hand and hotbar in chat shots. No saved data in v1, so the saved-data lessons are recorded as not applicable (history is in memory, documented). |
-| Repeatability | Committed scripts for every repeated step: `./gradlew benchmark`, `tools/benchmark.sh` (in-game), `tools/mutation.sh` (G4), `branding/make_*.py`, `branding/render_logo3d.py`, `branding/make_media.sh`. |
+| Repeatability | Committed scripts for every repeated step: `./gradlew benchmark`, `tools/benchmark.sh` (in-game), `tools/mutation.py` (G4), `branding/make_*.py`, `branding/render_logo3d.py`, `branding/make_media.sh`. |
 | Stop rules (build) | Stop and report if a GameTest shows vanilla changes planned stair shapes and the cause cannot be fixed in the planner; stop before any release tag or CurseForge upload (owner only). |
 
 ## G1 Spec ready
@@ -73,13 +73,13 @@ See research.md for sources. The decisions:
 | AC7 | Every stair keeps its shape in a real world: the planned shape equals what vanilla computes. | `everyStairHasTheShapeVanillaWouldGiveIt`, `StairShapesTest`; GameTest `placedStairsKeepTheirShapes` (compares every placed stair with `Block.updateFromNeighbourShapes`). |
 | AC8 | Non-air blocks are never replaced without consent; `force` never replaces block entities or unbreakable blocks. | GameTests `airOnlyByDefault`, `forceReplacesOnlyPlainBlocks`. |
 | AC9 | Undo restores exactly what was there and skips blocks changed since; redo reapplies the same way; a new roof clears redo. | GameTests `undoRestoresAndSkipsEditedBlocks`, `redoReappliesAndNewRoofClearsRedo`. |
-| AC10 | Limits: too many blocks or too wide refused before anything is placed; placement never exceeds the per-tick block budget and spreads over ticks. | GameTests `oversizedRoofIsRefused`, `placementSpreadsAcrossTicks`. |
+| AC10 | Limits: too many blocks or too wide refused before anything is placed; placement never exceeds the per-tick block budget and spreads over ticks. | GameTest `placementSpreadsAcrossTicks` (refuses a roof over `maxBlocks`, then spreads one across ticks); `RoofPlannerTest.oversizedOutlinesAreRefused`. |
 | AC11 | Protection: a claim (Common Protection API provider) keeps its blocks; adventure-mode players cannot build roofs. | GameTests `claimedBlocksAreSkipped`, `adventureModeCannotBuild`. |
 | AC12 | Permissions: players below the configured level cannot use `/roof`; `force` needs its own node; reload resends command trees. | GameTests `commandsNeedPermission`, `forceNeedsItsOwnPermission`. |
 | AC13 | Materials: vanilla families resolve stairs, slab, full block, wall; any stair-like block works; non-building blocks are refused with a message. | GameTest `materialsResolveFromAnyFamilyMember`. |
 | AC14 | Preview: only the builder receives it, packet entities (none added to the world), capped at the limit, blocked blocks highlighted, cleared on place and cancel. | GameTest `previewIsPacketOnlyCappedAndMarksBlocked`. |
 | AC15 | Wand: a stick with the Roofwright marker is the wand, a plain stick is not. | GameTest `wandIsRecognisedByItsMarker`. |
-| AC16 | Config: missing fields default, out-of-range values clamp with warnings, a broken file is never overwritten, defaults are written in full; history keeps its limit and a new roof clears redo. | `RoofwrightConfigTest` (4 cases), `HistoryTest` (4 cases). |
+| AC16 | Config: missing fields default, out-of-range values clamp with warnings, a broken file is never overwritten, defaults are written in full; history keeps its limit and a new roof clears redo. | `RoofwrightConfigTest` (4 cases), `HistoryTest` (7 cases). |
 | AC17 | Performance: planning a 256 x 256 hip roof is fast enough to run on the server thread (target under 50 ms warmed), and placement stays within the per-tick time budget. | `./gradlew benchmark` and `tools/benchmark.sh` readings recorded in sdlc-log.md. |
 | AC18 | Vanilla clients: works with no client mod (server-only registration, vanilla items and entities only). | Dedicated-server GameTests; client capture uses only vanilla rendering. |
 | AC19 | Selections are refused from their corners when wider than `maxSpan` (union for `select add`), before any column is collected; the footprint builder refuses sides over 1,024. (G5 H1) | GameTest `farSelectionIsRefusedBeforeAllocating`; `FootprintTest.hugeRectanglesAreRefusedBeforeAnyColumnIsCollected`. |
@@ -87,7 +87,14 @@ See research.md for sources. The decisions:
 | AC21 | Wand clicks within `wandCooldownTicks` of the last one do nothing; the wand works again after it. (G5 M2) | GameTest `wandClicksHaveACooldown`. |
 | AC22 | Checks never load chunks: an unloaded position is "not loaded". (G5 L1) | GameTest `unloadedChunksAreNeverLoaded`. |
 | AC23 | Replacing a block (force, or undo back to air) also needs the claim's break permission. (G5 L2) | GameTest `replacingNeedsBreakRights`. |
-| AC24 | Redo of a forced roof needs `roofwright.force`; redo respects `maxBlocks`; nothing exceeds 2,000,000 blocks. (G5 L3, L6) | GameTest `redoNeedsTheSameRights`; `HistoryTest.peekRedoLeavesTheEntryInPlace`. |
+| AC24 | Redo of a forced roof needs `roofwright.force`; redo respects `maxBlocks`; nothing exceeds 2,000,000 blocks. (G5 L3, L6) | GameTest `redoNeedsTheSameRights` (force and `maxBlocks`); `HistoryTest.peekRedoLeavesTheEntryInPlace`. |
+| AC25 | Undo and redo pass every placement check, the world border included. (G6 F1) | GameTest `replayChecksTheWorldLimits`. |
+| AC26 | Walls and stairs settle after placement within the block budget, never reading an unloaded neighbour. (G6 F2, F3) | GameTests `settlingStaysWithinTheBlockBudget`, `settlingNeverLoadsChunks`. |
+| AC27 | A stair beside a skipped block gets the shape vanilla gives it there. (G6 F4) | GameTest `blockedNeighboursLeaveNoWrongCorners`. |
+| AC28 | Undo and redo move history by what really ran; a cancelled one leaves the rest undoable or redoable. (G6 F5) | GameTest `cancelledUndoKeepsTheRestUndoable`; `HistoryTest.finishUndoSplitsAnInterruptedUndo`, `finishRedoSplitsAnInterruptedRedo`. |
+| AC29 | Materials and gable walls are checked again when a roof is planned, defaults included. (G6 F6) | GameTest `materialsAreCheckedAgainWhenBuilding`. |
+| AC30 | No preview is sent while the player is in another dimension than the selection. (G6 F8) | GameTest `previewNeedsTheSelectionsDimension`. |
+| AC31 | A block resolves to its own family first (stone bricks never become stone). | GameTest `materialsResolveFromAnyFamilyMember`. |
 
 ### Scope boundary
 
@@ -102,7 +109,7 @@ CurseForge upload, other repositories (owner only).
 | P2 | Pure core: planner, detector, shapes, with unit tests | `./gradlew test` green |
 | P3 | Platform: config, materials, sessions, wand, commands, preview, placement, undo, protection, permissions | `./gradlew build` with GameTests green |
 | P4 | Benchmarks (planner and in-game placement) | readings in sdlc-log.md |
-| P5 | G4 Tests with teeth: mutation harness with named killers | `tools/mutation.sh` log |
+| P5 | G4 Tests with teeth: mutation harness with named killers | `tools/mutation.py` log |
 | P6 | G5 Security clean and G6 Independent review, findings fixed and re-verified | sdlc-log.md |
 | P7 | Visuals: icon, 3D logo, client captures, GIF, banners, social preview | committed scripts and outputs |
 | P8 | Docs, site, CurseForge texts, workflows; push, CI green, Pages live | links and run ids in sdlc-log.md |

@@ -73,7 +73,7 @@
         <p class="pitch">Whole roofs from the tops of your walls, in one click.</p>
         <p class="sub">Right-click a wall top with the wand. Roofwright finds the building's outline, shows you a ghost of the roof, and builds it from stairs and slabs, hips and valleys included.</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="https://www.curseforge.com/minecraft/mc-mods/roofwright">Get it on CurseForge</a>
+          <a class="btn btn-primary" href="https://github.com/razekteixeira/roofwright/releases">Download</a>
           <a class="btn btn-ghost" href="https://github.com/razekteixeira/roofwright">Source on GitHub</a>
         </div>
       </div>
@@ -260,7 +260,7 @@
             <tr><td><code>place [force]</code></td><td>Builds the roof. <code>force</code> also replaces plain blocks in the way.</td></tr>
             <tr><td><code>undo</code>, <code>redo</code></td><td>Takes your last roof back, or puts it back.</td></tr>
             <tr><td><code>cancel</code></td><td>Stops a roof still going up and clears the preview.</td></tr>
-            <tr><td><code>info</code>, <code>reload</code></td><td>Your settings and history; re-read the config.</td></tr>
+            <tr><td><code>info</code>, <code>help</code>, <code>reload</code></td><td>Your settings and history, the command list, re-read the config.</td></tr>
           </tbody>
         </table>
       </div>
@@ -276,7 +276,7 @@
           <h3>Permissions</h3>
           <p>With a permissions mod, these nodes decide. Without one, the default operator levels apply. Holding a wand grants nothing.</p>
           <dl class="perm">
-            <div><dt><code>roofwright.use</code></dt><dd><span class="lvl">2</span>Detect, preview, place, undo</dd></div>
+            <div><dt><code>roofwright.use</code></dt><dd><span class="lvl">2</span>Detect, preview, place, undo (for trusted builders: previews show what is in the way)</dd></div>
             <div><dt><code>roofwright.force</code></dt><dd><span class="lvl">2</span>Replace plain blocks in the way</dd></div>
             <div><dt><code>roofwright.unlimited</code></dt><dd><span class="lvl">3</span>Past maxBlocks and maxSpan</dd></div>
             <div><dt><code>roofwright.admin</code></dt><dd><span class="lvl">3</span>Reload the config</dd></div>
@@ -293,6 +293,7 @@
   <span class="j-k">"historySize"</span>: <span class="j-n">10</span>,
   <span class="j-k">"previewLimit"</span>: <span class="j-n">3000</span>,
   <span class="j-k">"previewSeconds"</span>: <span class="j-n">300</span>,
+  <span class="j-k">"wandCooldownTicks"</span>: <span class="j-n">5</span>,
   <span class="j-k">"permissionLevels"</span>: {
     <span class="j-k">"use"</span>: <span class="j-n">2</span>, <span class="j-k">"force"</span>: <span class="j-n">2</span>,
     <span class="j-k">"unlimited"</span>: <span class="j-n">3</span>, <span class="j-k">"admin"</span>: <span class="j-n">3</span>
@@ -336,7 +337,7 @@
           </ol>
         </div>
       </div>
-      <a class="btn btn-primary" href="https://www.curseforge.com/minecraft/mc-mods/roofwright">Get it on CurseForge</a>
+      <a class="btn btn-primary" href="https://github.com/razekteixeira/roofwright/releases">Download</a>
     </div>
   </section>
 
@@ -382,7 +383,7 @@
       <span class="pixel">Roofwright</span>
     </div>
     <ul class="foot-links">
-      <li><a href="https://www.curseforge.com/minecraft/mc-mods/roofwright">CurseForge</a></li>
+      <li><a href="https://github.com/razekteixeira/roofwright/releases">Releases</a></li>
       <li><a href="https://github.com/razekteixeira/roofwright">GitHub</a></li>
       <li><a href="https://github.com/razekteixeira/roofwright/issues">Report an issue</a></li>
     </ul>

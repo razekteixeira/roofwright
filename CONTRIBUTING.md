@@ -35,7 +35,7 @@ Thanks for helping. Issues, ideas and pull requests are all welcome. Please foll
   use a GameTest when real blocks, commands, permissions or protection are involved.
 - **Roof shapes:** run the property tests (`everyRoofIsWatertight`, `everyStairHasTheShapeVanillaWouldGiveIt`)
   and look at a real capture before and after. A shape that passes the tests can still look wrong.
-- **Mutation check:** `python3 -P tools/mutation.py` plants 20 mutants and fails unless a named test
+- **Mutation check:** `python3 -P tools/mutation.py` plants 38 mutants and fails unless a named test
   kills each one. Add a mutant when you add a safety rule.
 - **Never overwrite without consent:** placement fills air only; anything else needs `force`, and
   block entities and unbreakable blocks are never replaced.

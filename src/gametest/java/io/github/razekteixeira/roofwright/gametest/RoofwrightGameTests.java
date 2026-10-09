@@ -713,6 +713,17 @@ public class RoofwrightGameTests {
 		MinecraftServer server = helper.getLevel().getServer();
 		op(server, player);
 		try {
+			// Level 2 may force but not exceed limits: a redo bigger than maxBlocks is refused like a new roof.
+			Settings original = RoofwrightConfig.get();
+			RoofwrightConfig.set(original.withMaxBlocks(1));
+			try {
+				RoofService.redo(source(player));
+				helper.fail("a redo over maxBlocks must be refused");
+			} catch (PlanException expected) {
+				helper.assertTrue(expected.getMessage().contains("limit is 1"), expected.getMessage());
+			} finally {
+				RoofwrightConfig.set(original);
+			}
 			Placements.runNow(RoofService.redo(source(player)));
 		} finally {
 			server.getPlayerList().deop(player.nameAndId());

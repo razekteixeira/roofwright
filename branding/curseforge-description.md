@@ -23,7 +23,7 @@ Server-side only. Players join with a vanilla client.
 - **Any material:** any member of a block family (oak, spruce, deepslate tiles, bricks, blackstone...), stair-like blocks from other mods such as **Macaw's Roofs**, or three blocks of your choice.
 - **Ghost preview** that only you can see; blocks in the way show in red.
 - **Undo and redo** that leave alone anything someone changed in the meantime.
-- **Safe on servers:** fills air only unless you ask for `force` (which still never replaces chests or bedrock), respects claim mods (Common Protection API: GOML, Flan and others), spawn protection and adventure mode, and places a budgeted number of blocks per tick.
+- **Safe on servers:** fills air only unless you ask for `force` (which still never replaces chests or bedrock), respects claim mods (Common Protection API: GOML, Flan and others, including their break rights), spawn protection and adventure mode, never builds with portals, containers, fluids, TNT or other unsafe blocks (`#roofwright:forbidden`, extendable with a data pack), and places a budgeted number of blocks per tick.
 
 ![Ghost preview, then the roof going up](https://razekteixeira.github.io/roofwright/media/grow.gif)
 
@@ -71,12 +71,12 @@ Every screenshot is a real capture from the game client, made by the project's c
 | `preview` | Shows the ghost again |
 | `place [force]` | Builds the roof; `force` also replaces plain blocks in the way |
 | `undo`, `redo`, `cancel` | Takes your last roof back, puts it back, or stops one still going up |
-| `info`, `reload` | Your settings and history; re-read the config |
+| `info`, `help`, `reload` | Your settings and history, the command list, re-read the config |
 
 ## For server owners
 
 - **Permissions:** with a permissions mod such as LuckPerms, grant `roofwright.use`, `roofwright.force`, `roofwright.unlimited` and `roofwright.admin`. Without one, the operator levels from `config/roofwright.json` apply (defaults 2, 2, 3, 3). Holding a wand grants nothing; every click is checked.
-- **Limits** in `config/roofwright.json`: `maxSpan` (widest outline, 96), `maxBlocks` per roof (30,000), `blocksPerTick` (2,000) and `millisPerTick` (5) shared by everyone's roofs, `historySize` (10), `previewLimit` (3,000) and `previewSeconds` (300). Applied with `/roof reload`.
+- **Limits** in `config/roofwright.json`: `maxSpan` (widest outline, 96), `maxBlocks` per roof (30,000), `blocksPerTick` (2,000) and `millisPerTick` (5) shared by everyone's roofs, `historySize` (10), `previewLimit` (3,000), `previewSeconds` (300) and `wandCooldownTicks` (5). Applied with `/roof reload`. Grant `roofwright.use` to trusted builders.
 - **Performance:** planning a 256 by 256 hip roof takes about 17 ms; while a 16,900-block roof goes up, the worst tick has a median of 2.05 ms (measured on an Apple M-series Mac with the repository's benchmark scripts).
 - History and previews live in memory; a server restart clears them.
 

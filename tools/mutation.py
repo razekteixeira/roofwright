@@ -53,8 +53,9 @@ MUTANTS = [
     ("M18", "Materials.java", "f.get(BlockFamily.Variant.WALL)));", "null));", "families lose their wall block"),
     ("M19", "core/RoofPlanner.java", "case SHED -> switch (spec.shedRise()) {\n\t\t\t\t\t\t\tcase NORTH -> area.z1() - z;",
      "case SHED -> switch (spec.shedRise()) {\n\t\t\t\t\t\t\tcase NORTH -> z - area.z0();", "shed rises the wrong way"),
-    ("M20", "core/RoofPlanner.java", "ridge[i] = height % 2 == 0 && surfacePiece(grid, top, x, z, height) == null;",
-     "ridge[i] = false;", "ridges never capped"),
+    # Earlier M20 ("ridge[i] = false") crashed every plan with a null piece, so its kill did not discriminate.
+    ("M20", "core/RoofPlanner.java", "surface[i] = ridge[i] && spec.slabRidge() ? height - 1 : height;",
+     "surface[i] = height;", "slab ridge caps not lowered by half a block"),
     # G5 Security clean fixes: each must be killed by the test written for it.
     ("M21", "RoofService.java", "if (width > maxSpan || depth > maxSpan) {", "if (false) {",
      "H1: selection size checked only after collecting columns"),

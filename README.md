@@ -82,6 +82,7 @@ rendered in Blender from the icon's own pixels ([`branding/render_logo3d.py`](br
 | `/roof undo`, `/roof redo` | Takes your last roof back, or puts it back again |
 | `/roof cancel` | Stops a roof that is still going up, and clears the preview |
 | `/roof info` | Your settings, selection and history |
+| `/roof help` | The command list in chat |
 | `/roof reload` | Re-reads `config/roofwright.json` |
 
 ### Permissions
@@ -90,7 +91,8 @@ With a permissions mod such as LuckPerms, grant the nodes `roofwright.use` (ever
 `roofwright.force` (`/roof place force`), `roofwright.unlimited` (bigger than `maxBlocks` and
 `maxSpan`) and `roofwright.admin` (`/roof reload`). Without one, the vanilla operator levels from
 the config apply: use 2, force 2, unlimited 3, admin 3. Holding a wand grants nothing; every click
-checks `roofwright.use`.
+checks `roofwright.use`. Grant `roofwright.use` to builders you trust: a preview marks blocks that are
+in the way or protected, so it reveals a little about what is under the roof line.
 
 ### Configuration
 
@@ -113,6 +115,10 @@ checks `roofwright.use`.
 Out-of-range values are clamped with a warning in the log. A file that cannot be read is reported
 and left untouched; the previous settings stay active. Roofs bigger than `previewLimit` preview
 their top surface only. Wand clicks within `wandCooldownTicks` of the last one are ignored.
+Allowed ranges: `maxSpan` 4 to 512, `maxBlocks` 1 to 2,000,000, `blocksPerTick` 1 to 100,000,
+`millisPerTick` 1 to 40, `historySize` 0 to 100, `previewLimit` 0 to 20,000, `previewSeconds` 5 to
+3,600, `wandCooldownTicks` 0 to 100, permission levels 0 to 4. Cone and dome roofs take outlines
+up to 96 blocks across.
 
 ## How it works
 
