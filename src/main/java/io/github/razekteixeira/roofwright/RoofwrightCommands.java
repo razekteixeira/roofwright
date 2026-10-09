@@ -88,7 +88,7 @@ public final class RoofwrightCommands {
 				.then(literal("gable")
 						.then(literal("match").executes(c -> gable(c, null)))
 						.then(argument("block", BlockStateArgument.block(context))
-								.executes(c -> gable(c, BlockStateArgument.getBlock(c, "block").getState()))))
+								.executes(c -> gable(c, safeGable(BlockStateArgument.getBlock(c, "block").getState())))))
 				.then(literal("preview").executes(c -> act(c, () -> RoofService.preview(c.getSource()))))
 				.then(literal("place")
 						.executes(c -> act(c, () -> RoofService.place(c.getSource(), false)))
@@ -248,6 +248,14 @@ public final class RoofwrightCommands {
 		Materials m = result.materials();
 		return refresh(c, "Material: " + Materials.id(m.stairs()) + ", " + Materials.id(m.slab()) + ", " + Materials.id(m.full())
 				+ (m.wall() != null ? ", " + Materials.id(m.wall()) : ""));
+	}
+
+	private static BlockState safeGable(BlockState state) throws CommandSyntaxException {
+		String problem = Materials.problem(state, true);
+		if (problem != null) {
+			throw UNKNOWN.create("Gable walls: " + problem);
+		}
+		return state;
 	}
 
 	private static int gable(CommandContext<CommandSourceStack> c, BlockState state) {

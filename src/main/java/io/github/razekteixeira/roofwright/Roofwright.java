@@ -28,7 +28,7 @@ public final class Roofwright implements ModInitializer {
 		// The client drops entities when it changes dimension, so a preview there is simply forgotten.
 		ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, destination) ->
 				RoofService.session(player.getUUID()).preview = null);
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> RoofService.session(handler.getPlayer().getUUID()).preview = null);
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> RoofService.disconnected(handler.getPlayer().getUUID()));
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			Placements.clear();
 			RoofService.clearAll();

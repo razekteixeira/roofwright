@@ -126,7 +126,7 @@ public final class PlacementJob {
 	private void apply(Step step, @Nullable ServerPlayer player) {
 		BlockPos pos = step.pos();
 		if (!level.isLoaded(pos)) {
-			skip(Protection.Verdict.OUTSIDE_WORLD);
+			skip(Protection.Verdict.NOT_LOADED);
 			return;
 		}
 		BlockState current = level.getBlockState(pos);
@@ -220,7 +220,7 @@ public final class PlacementJob {
 	}
 
 	public Journal journal() {
-		return new Journal(level.dimension(), label, changes);
+		return new Journal(level.dimension(), label, force, changes);
 	}
 
 	public int placed() {

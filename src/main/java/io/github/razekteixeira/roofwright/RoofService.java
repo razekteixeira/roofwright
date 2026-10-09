@@ -75,8 +75,16 @@ public final class RoofService {
 		return SESSIONS.computeIfAbsent(id, key -> new RoofSession());
 	}
 
-	static void forget(UUID id) {
-		SESSIONS.remove(id);
+	/** A player left: their preview is gone, and a session with nothing to undo or redo is dropped. */
+	static void disconnected(UUID id) {
+		RoofSession session = SESSIONS.get(id);
+		if (session == null) {
+			return;
+		}
+		session.preview = null;
+		if (session.history.undoCount() == 0 && session.history.redoCount() == 0) {
+			SESSIONS.remove(id);
+		}
 	}
 
 	static void clearAll() {
@@ -87,11 +95,15 @@ public final class RoofService {
 
 	/** Detects the outline whose wall top contains {@code pos} and selects it. */
 	public static Footprint detect(CommandSourceStack source, ServerLevel level, BlockPos pos) throws PlanException {
-		Footprint footprint = FootprintDetector.detect(pos.getX(), pos.getY(), pos.getZ(),
-				(x, z) -> isWall(level.getBlockState(new BlockPos(x, pos.getY(), z))), maxSpan(source));
+		// Unloaded columns count as open: detection must never load chunks.
+		Footprint footprint = FootprintDetector.detect(pos.getX(), pos.getY(), pos.getZ(), (x, z) -> {
+			BlockPos column = new BlockPos(x, pos.getY(), z);
+			return level.isLoaded(column) && isWall(level.getBlockState(column));
+		}, maxSpan(source));
 		RoofSession session = session(source);
 		BlockState clicked = level.getBlockState(pos);
-		session.wallSample = clicked.isCollisionShapeFullBlock(level, pos) && !clicked.hasBlockEntity() ? clicked : null;
+		// Gable walls copy the clicked block only when it is safe to build with; otherwise they use the full block.
+		session.wallSample = Materials.problem(clicked, true) == null ? clicked : null;
 		select(session, level, footprint);
 		return footprint;
 	}
@@ -111,17 +123,31 @@ public final class RoofService {
 			throws PlanException {
 		RoofSession session = session(source);
 		int y = Math.max(from.getY(), to.getY());
+		Footprint previous = add && session.footprint != null && level.dimension().equals(session.level) ? session.footprint : null;
+		// Check the size from the corners before collecting a single column: a far corner must not cost memory.
+		int minX = Math.min(from.getX(), to.getX());
+		int maxX = Math.max(from.getX(), to.getX());
+		int minZ = Math.min(from.getZ(), to.getZ());
+		int maxZ = Math.max(from.getZ(), to.getZ());
+		if (previous != null) {
+			minX = Math.min(minX, previous.minX());
+			maxX = Math.max(maxX, previous.maxX());
+			minZ = Math.min(minZ, previous.minZ());
+			maxZ = Math.max(maxZ, previous.maxZ());
+		}
+		long width = Footprint.span(minX, maxX);
+		long depth = Footprint.span(minZ, maxZ);
+		int maxSpan = maxSpan(source);
+		if (width > maxSpan || depth > maxSpan) {
+			throw new PlanException("The selection is " + width + " x " + depth
+					+ " blocks; the limit is " + maxSpan + " (maxSpan in config/roofwright.json).");
+		}
 		Footprint.Builder builder = new Footprint.Builder(add && session.footprint != null ? session.footprint.wallTopY() : y);
-		if (add && session.footprint != null && level.dimension().equals(session.level)) {
-			builder.addAll(session.footprint);
+		if (previous != null) {
+			builder.addAll(previous);
 		}
 		builder.addRectangle(from.getX(), from.getZ(), to.getX(), to.getZ());
 		Footprint footprint = builder.build();
-		int maxSpan = maxSpan(source);
-		if (footprint.width() > maxSpan || footprint.depth() > maxSpan) {
-			throw new PlanException("The selection is " + footprint.width() + " x " + footprint.depth()
-					+ " blocks; the limit is " + maxSpan + " (maxSpan in config/roofwright.json).");
-		}
 		if (!add) {
 			session.wallSample = null;
 		}
@@ -148,10 +174,7 @@ public final class RoofService {
 			throw new PlanException("The selected building is in a world that is not loaded.");
 		}
 		RoofPlan plan = RoofPlanner.plan(footprint, session.spec);
-		int limit = RoofwrightConfig.get().maxBlocks();
-		if (plan.size() > limit && !RoofwrightCommands.canExceedLimits(source)) {
-			throw new PlanException("This roof needs " + plan.size() + " blocks; the limit is " + limit + " (maxBlocks in config/roofwright.json).");
-		}
+		requireWithinLimit(source, plan.size());
 		BlockState gable = gableState(session);
 		Map<Long, Integer> highest = new HashMap<>();
 		for (PlannedBlock block : plan.blocks()) {
@@ -166,6 +189,20 @@ public final class RoofService {
 			targets.add(new Target(pos, state, Protection.check(level, pos, player, force), block.piece().kind() == Piece.Kind.WALL, surface));
 		}
 		return new Prepared(plan, level, targets);
+	}
+
+	/**
+	 * Refuses jobs over {@code maxBlocks}; {@code roofwright.unlimited} lifts that, but never past
+	 * {@link Settings#BLOCK_CEILING}.
+	 */
+	private static void requireWithinLimit(CommandSourceStack source, int blocks) throws PlanException {
+		int limit = RoofwrightConfig.get().maxBlocks();
+		if (blocks > limit && !RoofwrightCommands.canExceedLimits(source)) {
+			throw new PlanException("This roof needs " + blocks + " blocks; the limit is " + limit + " (maxBlocks in config/roofwright.json).");
+		}
+		if (blocks > Settings.BLOCK_CEILING) {
+			throw new PlanException("This roof needs " + blocks + " blocks; Roofwright never places more than " + Settings.BLOCK_CEILING + " at once.");
+		}
 	}
 
 	static BlockState gableState(RoofSession session) {
@@ -253,8 +290,14 @@ public final class RoofService {
 	public static PlacementJob redo(CommandSourceStack source) throws PlanException {
 		UUID owner = ownerOf(source);
 		requireIdle(owner);
-		Journal journal = session(source).history.redo()
-				.orElseThrow(() -> new PlanException("Nothing to redo."));
+		RoofSession session = session(source);
+		Journal next = session.history.peekRedo().orElseThrow(() -> new PlanException("Nothing to redo."));
+		// Redo places blocks again, so it needs the same rights as placing them did.
+		if (next.force() && !RoofwrightCommands.canForce(source)) {
+			throw new PlanException("That roof replaced other blocks; redoing it needs the roofwright.force permission.");
+		}
+		requireWithinLimit(source, next.changes().size());
+		Journal journal = session.history.redo().orElseThrow(() -> new PlanException("Nothing to redo."));
 		List<PlacementJob.Step> steps = new ArrayList<>(journal.changes().size());
 		for (Journal.Change change : journal.changes()) {
 			steps.add(new PlacementJob.Step(change.pos(), change.before(), change.after(), false));

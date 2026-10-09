@@ -55,6 +55,26 @@ MUTANTS = [
      "case SHED -> switch (spec.shedRise()) {\n\t\t\t\t\t\t\tcase NORTH -> z - area.z0();", "shed rises the wrong way"),
     ("M20", "core/RoofPlanner.java", "ridge[i] = height % 2 == 0 && surfacePiece(grid, top, x, z, height) == null;",
      "ridge[i] = false;", "ridges never capped"),
+    # G5 Security clean fixes: each must be killed by the test written for it.
+    ("M21", "RoofService.java", "if (width > maxSpan || depth > maxSpan) {", "if (false) {",
+     "H1: selection size checked only after collecting columns"),
+    ("M22", "core/Footprint.java", "if (span(x0, x1) > MAX_SIDE || span(z0, z1) > MAX_SIDE) {", "if (false) {",
+     "H1: footprint builder accepts any rectangle"),
+    ("M23", "Materials.java", "if (state.is(FORBIDDEN)) {", "if (false) {", "M1: #roofwright:forbidden ignored"),
+    ("M24", "RoofService.java", "session.wallSample = Materials.problem(clicked, true) == null ? clicked : null;",
+     "session.wallSample = clicked;", "M1: any clicked block becomes the gable wall"),
+    ("M25", "RoofwrightCommands.java", ".executes(c -> gable(c, safeGable(BlockStateArgument.getBlock(c, \"block\").getState())))))",
+     ".executes(c -> gable(c, BlockStateArgument.getBlock(c, \"block\").getState()))))", "M1: /roof gable takes any block"),
+    ("M26", "Materials.java", "return problem == null ? new Result(materials, null) : error(problem);",
+     "return new Result(materials, null);", "M1: materials never checked"),
+    ("M27", "Wand.java", "if (now < session.wandReadyAt) {", "if (false) {", "M2: no wand cooldown"),
+    ("M28", "Protection.java", "if (!level.isLoaded(pos)) {\n\t\t\treturn Verdict.NOT_LOADED;",
+     "if (false) {\n\t\t\treturn Verdict.NOT_LOADED;", "L1: checks load chunks"),
+    ("M29", "Protection.java", "if (builder != null && replaceable && !current.isAir() && !CommonProtection.canBreakBlock(",
+     "if (false && builder != null && replaceable && !current.isAir() && !CommonProtection.canBreakBlock(",
+     "L2: break rights ignored when replacing"),
+    ("M30", "RoofService.java", "if (next.force() && !RoofwrightCommands.canForce(source)) {", "if (false) {",
+     "L3: redo of a forced roof without the force permission"),
 ]
 
 

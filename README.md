@@ -105,13 +105,14 @@ checks `roofwright.use`.
   "historySize": 10,
   "previewLimit": 3000,
   "previewSeconds": 300,
+  "wandCooldownTicks": 5,
   "permissionLevels": { "use": 2, "force": 2, "unlimited": 3, "admin": 3 }
 }
 ```
 
 Out-of-range values are clamped with a warning in the log. A file that cannot be read is reported
 and left untouched; the previous settings stay active. Roofs bigger than `previewLimit` preview
-their top surface only.
+their top surface only. Wand clicks within `wandCooldownTicks` of the last one are ignored.
 
 ## How it works
 
@@ -136,13 +137,22 @@ The research behind the design, with sources, is in [docs/research.md](docs/rese
 - Places only into **air**. Tall grass, water and everything else count as in the way and are
   skipped (red in the preview), unless you use `force`, which still never replaces block entities
   (chests, signs, spawners) or unbreakable blocks.
+- **Safe materials only:** roofs and gable walls are never made of blocks with block entities,
+  fluids, unbreakable or operator blocks, falling blocks, or anything in the block tag
+  `#roofwright:forbidden` (portals, fire, TNT, spawners, budding amethyst and more; extend it with a
+  data pack).
 - Respects claims from mods that implement the
   [Common Protection API](https://github.com/Patbox/common-protection-api) (GOML, Flan and others),
   vanilla spawn protection, adventure mode, the world border and build height. Claims are still
-  checked if you log off while your roof is going up.
-- **Limits:** `maxBlocks` per roof, `maxSpan` per outline, and a per-tick budget of
-  `blocksPerTick` blocks and `millisPerTick` milliseconds shared by everyone's roofs.
-- **Undo and redo** restore only blocks that are still exactly as the roof left them.
+  checked if you log off while your roof is going up. Replacing a block (with `force`, or when
+  undo turns roof blocks back into air) also needs the claim's break permission. Roofwright never
+  loads chunks: unloaded columns are left out.
+- **Limits:** `maxBlocks` per roof, `maxSpan` per outline (checked from the corners before
+  anything is computed), and a per-tick budget of `blocksPerTick` blocks and `millisPerTick`
+  milliseconds shared by everyone's roofs. `roofwright.unlimited` lifts `maxBlocks`, up to a hard
+  ceiling of 2,000,000 blocks.
+- **Undo and redo** restore only blocks that are still exactly as the roof left them. Redoing a
+  forced roof needs `roofwright.force` again.
 - History and previews live in memory; a server restart clears them.
 
 ## Performance

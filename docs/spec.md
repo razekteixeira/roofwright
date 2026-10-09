@@ -82,6 +82,12 @@ See research.md for sources. The decisions:
 | AC16 | Config: missing fields default, out-of-range values clamp with warnings, a broken file is never overwritten, defaults are written in full; history keeps its limit and a new roof clears redo. | `RoofwrightConfigTest` (4 cases), `HistoryTest` (4 cases). |
 | AC17 | Performance: planning a 256 x 256 hip roof is fast enough to run on the server thread (target under 50 ms warmed), and placement stays within the per-tick time budget. | `./gradlew benchmark` and `tools/benchmark.sh` readings recorded in sdlc-log.md. |
 | AC18 | Vanilla clients: works with no client mod (server-only registration, vanilla items and entities only). | Dedicated-server GameTests; client capture uses only vanilla rendering. |
+| AC19 | Selections are refused from their corners when wider than `maxSpan` (union for `select add`), before any column is collected; the footprint builder refuses sides over 1,024. (G5 H1) | GameTest `farSelectionIsRefusedBeforeAllocating`; `FootprintTest.hugeRectanglesAreRefusedBeforeAnyColumnIsCollected`. |
+| AC20 | Roof materials, gable walls and detected wall samples are never block entities, fluids, unbreakable, operator or falling blocks, or in `#roofwright:forbidden`. (G5 M1) | GameTest `unsafeMaterialsAreRefused`. |
+| AC21 | Wand clicks within `wandCooldownTicks` of the last one do nothing; the wand works again after it. (G5 M2) | GameTest `wandClicksHaveACooldown`. |
+| AC22 | Checks never load chunks: an unloaded position is "not loaded". (G5 L1) | GameTest `unloadedChunksAreNeverLoaded`. |
+| AC23 | Replacing a block (force, or undo back to air) also needs the claim's break permission. (G5 L2) | GameTest `replacingNeedsBreakRights`. |
+| AC24 | Redo of a forced roof needs `roofwright.force`; redo respects `maxBlocks`; nothing exceeds 2,000,000 blocks. (G5 L3, L6) | GameTest `redoNeedsTheSameRights`; `HistoryTest.peekRedoLeavesTheEntryInPlace`. |
 
 ### Scope boundary
 

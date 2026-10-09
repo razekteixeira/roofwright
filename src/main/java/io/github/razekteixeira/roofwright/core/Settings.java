@@ -17,6 +17,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * @param historySize      roofs each player can undo
  * @param previewLimit     most ghost blocks in one preview; bigger roofs preview their surface only
  * @param previewSeconds   how long a preview stays before it disappears
+ * @param wandCooldownTicks ticks after a wand click during which further clicks by the same player are ignored
  */
 public record Settings(
 		int maxSpan,
@@ -26,6 +27,7 @@ public record Settings(
 		int historySize,
 		int previewLimit,
 		int previewSeconds,
+		int wandCooldownTicks,
 		PermissionLevels permissionLevels) {
 
 	/**
@@ -51,7 +53,10 @@ public record Settings(
 		).apply(i, PermissionLevels::new));
 	}
 
-	public static final Settings DEFAULTS = new Settings(96, 30_000, 2_000, 5, 10, 3_000, 300, PermissionLevels.DEFAULTS);
+	/** Most blocks one job may place, even with {@code roofwright.unlimited}. */
+	public static final int BLOCK_CEILING = 2_000_000;
+
+	public static final Settings DEFAULTS = new Settings(96, 30_000, 2_000, 5, 10, 3_000, 300, 5, PermissionLevels.DEFAULTS);
 
 	/**
 	 * Writes every field, including defaults, so the generated file documents all options.
@@ -65,6 +70,7 @@ public record Settings(
 			Codec.INT.fieldOf("historySize").forGetter(Settings::historySize),
 			Codec.INT.fieldOf("previewLimit").forGetter(Settings::previewLimit),
 			Codec.INT.fieldOf("previewSeconds").forGetter(Settings::previewSeconds),
+			Codec.INT.fieldOf("wandCooldownTicks").forGetter(Settings::wandCooldownTicks),
 			PermissionLevels.WRITE_CODEC.fieldOf("permissionLevels").forGetter(Settings::permissionLevels)
 	).apply(i, Settings::new));
 
@@ -77,6 +83,7 @@ public record Settings(
 			Codec.INT.optionalFieldOf("historySize", DEFAULTS.historySize).forGetter(Settings::historySize),
 			Codec.INT.optionalFieldOf("previewLimit", DEFAULTS.previewLimit).forGetter(Settings::previewLimit),
 			Codec.INT.optionalFieldOf("previewSeconds", DEFAULTS.previewSeconds).forGetter(Settings::previewSeconds),
+			Codec.INT.optionalFieldOf("wandCooldownTicks", DEFAULTS.wandCooldownTicks).forGetter(Settings::wandCooldownTicks),
 			PermissionLevels.CODEC.optionalFieldOf("permissionLevels", PermissionLevels.DEFAULTS).forGetter(Settings::permissionLevels)
 	).apply(i, Settings::new));
 
@@ -89,12 +96,13 @@ public record Settings(
 		PermissionLevels p = permissionLevels;
 		Settings clamped = new Settings(
 				clamp("maxSpan", maxSpan, 4, RoofPlanner.MAX_SPAN, warnings),
-				clamp("maxBlocks", maxBlocks, 1, 2_000_000, warnings),
+				clamp("maxBlocks", maxBlocks, 1, BLOCK_CEILING, warnings),
 				clamp("blocksPerTick", blocksPerTick, 1, 100_000, warnings),
 				clamp("millisPerTick", millisPerTick, 1, 40, warnings),
 				clamp("historySize", historySize, 0, 100, warnings),
 				clamp("previewLimit", previewLimit, 0, 20_000, warnings),
 				clamp("previewSeconds", previewSeconds, 5, 3_600, warnings),
+				clamp("wandCooldownTicks", wandCooldownTicks, 0, 100, warnings),
 				new PermissionLevels(
 						clamp("permissionLevels.use", p.use(), 0, 4, warnings),
 						clamp("permissionLevels.force", p.force(), 0, 4, warnings),
@@ -112,14 +120,18 @@ public record Settings(
 	}
 
 	public Settings withBlocksPerTick(int value) {
-		return new Settings(maxSpan, maxBlocks, value, millisPerTick, historySize, previewLimit, previewSeconds, permissionLevels);
+		return new Settings(maxSpan, maxBlocks, value, millisPerTick, historySize, previewLimit, previewSeconds, wandCooldownTicks, permissionLevels);
 	}
 
 	public Settings withMaxBlocks(int value) {
-		return new Settings(maxSpan, value, blocksPerTick, millisPerTick, historySize, previewLimit, previewSeconds, permissionLevels);
+		return new Settings(maxSpan, value, blocksPerTick, millisPerTick, historySize, previewLimit, previewSeconds, wandCooldownTicks, permissionLevels);
+	}
+
+	public Settings withPermissionLevels(PermissionLevels value) {
+		return new Settings(maxSpan, maxBlocks, blocksPerTick, millisPerTick, historySize, previewLimit, previewSeconds, wandCooldownTicks, value);
 	}
 
 	public Settings withPreviewLimit(int value) {
-		return new Settings(maxSpan, maxBlocks, blocksPerTick, millisPerTick, historySize, value, previewSeconds, permissionLevels);
+		return new Settings(maxSpan, maxBlocks, blocksPerTick, millisPerTick, historySize, value, previewSeconds, wandCooldownTicks, permissionLevels);
 	}
 }

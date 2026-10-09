@@ -8,6 +8,12 @@ import java.util.BitSet;
  * columns themselves, plus the y of the top of the walls. Immutable.
  */
 public final class Footprint {
+	/**
+	 * Widest side a footprint may have, twice the planner's {@link RoofPlanner#MAX_SPAN}. A backstop
+	 * against huge allocations: callers check their own, smaller limits first.
+	 */
+	public static final int MAX_SIDE = 2 * RoofPlanner.MAX_SPAN;
+
 	private final int minX;
 	private final int minZ;
 	private final int width;
@@ -105,6 +111,11 @@ public final class Footprint {
 		return "Footprint[" + cellCount + " columns, x " + minX + ".." + maxX() + ", z " + minZ + ".." + maxZ() + ", wall top y " + wallTopY + "]";
 	}
 
+	/** Columns from {@code a} to {@code b} inclusive, without overflowing for any two ints. */
+	public static long span(int a, int b) {
+		return Math.abs((long) a - b) + 1;
+	}
+
 	/** Collects columns, then builds the smallest grid that holds them. */
 	public static final class Builder {
 		private final int wallTopY;
@@ -119,7 +130,11 @@ public final class Footprint {
 			return this;
 		}
 
+		/** @throws IllegalArgumentException when a side is longer than {@link #MAX_SIDE} (nothing is added) */
 		public Builder addRectangle(int x0, int z0, int x1, int z1) {
+			if (span(x0, x1) > MAX_SIDE || span(z0, z1) > MAX_SIDE) {
+				throw new IllegalArgumentException("rectangle " + span(x0, x1) + " x " + span(z0, z1) + " is wider than " + MAX_SIDE);
+			}
 			for (int x = Math.min(x0, x1); x <= Math.max(x0, x1); x++) {
 				for (int z = Math.min(z0, z1); z <= Math.max(z0, z1); z++) {
 					add(x, z);

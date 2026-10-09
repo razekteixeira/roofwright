@@ -19,7 +19,7 @@ class RoofwrightConfigTest {
 		assertTrue(status.startsWith("Wrote default settings"), status);
 		String written = Files.readString(file);
 		for (String option : new String[] {"maxSpan", "maxBlocks", "blocksPerTick", "millisPerTick", "historySize", "previewLimit",
-				"previewSeconds", "permissionLevels", "\"use\"", "\"force\"", "\"unlimited\"", "\"admin\""}) {
+				"previewSeconds", "wandCooldownTicks", "permissionLevels", "\"use\"", "\"force\"", "\"unlimited\"", "\"admin\""}) {
 			assertTrue(written.contains(option), "generated file documents " + option + ":\n" + written);
 		}
 		assertEquals(Settings.DEFAULTS, RoofwrightConfig.get());

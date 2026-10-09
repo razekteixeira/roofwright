@@ -27,6 +27,10 @@ First public release, for Minecraft 26.3 on Fabric.
 - Placement spread over ticks within a block and time budget; undo and redo that skip blocks
   changed since; `/roof cancel`.
 - Safety: air only unless `force` (never block entities or unbreakable blocks), claims through the
-  Common Protection API (bundled), spawn protection, adventure mode, world border, per-roof limits.
+  Common Protection API (bundled, place and break rights), spawn protection, adventure mode, world
+  border, per-roof limits checked before any work, no chunk loading.
+- Safe materials only: no block entities, fluids, unbreakable, operator or falling blocks, and the
+  `#roofwright:forbidden` block tag (portals, fire, TNT, spawners and more) for roofs and gable walls.
+- Wand click cooldown (`wandCooldownTicks`).
 - `config/roofwright.json` with limits, budget, history, preview and permission settings, and
   `/roof reload`. Permission nodes through fabric-permissions-api (bundled), with vanilla level fallback.

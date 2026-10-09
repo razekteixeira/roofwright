@@ -47,3 +47,6 @@ logs/
 
 # agent worktrees
 .claude/
+
+# Python bytecode
+__pycache__/

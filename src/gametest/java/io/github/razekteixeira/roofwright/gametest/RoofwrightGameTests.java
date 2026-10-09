@@ -9,6 +9,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -21,6 +22,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
@@ -34,8 +36,11 @@ import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.StairsShape;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 
 import eu.pb4.common.protection.api.CommonProtection;
@@ -72,6 +77,11 @@ public class RoofwrightGameTests {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		player.setGameMode(mode);
 		return player;
+	}
+
+	/** Makes a mock player a level 2 operator (the GameTest server's default operator level is 0). */
+	private static void op(MinecraftServer server, ServerPlayer player) {
+		server.getPlayerList().op(player.nameAndId(), java.util.Optional.of(LevelBasedPermissionSet.GAMEMASTER), java.util.Optional.of(false));
 	}
 
 	private static CommandSourceStack source(ServerPlayer player) {
@@ -373,9 +383,7 @@ public class RoofwrightGameTests {
 		CommandSourceStack gamemaster = server.createCommandSourceStack().withLevel(helper.getLevel()).withSuppressedOutput()
 				.withPermission(LevelBasedPermissionSet.GAMEMASTER);
 		Settings original = RoofwrightConfig.get();
-		RoofwrightConfig.set(new Settings(original.maxSpan(), original.maxBlocks(), original.blocksPerTick(), original.millisPerTick(),
-				original.historySize(), original.previewLimit(), original.previewSeconds(),
-				new Settings.PermissionLevels(2, 4, 3, 3)));
+		RoofwrightConfig.set(original.withPermissionLevels(new Settings.PermissionLevels(2, 4, 3, 3)));
 		try {
 			helper.assertTrue(dispatcher.parse("roof place", gamemaster).getExceptions().isEmpty()
 					&& !dispatcher.parse("roof place", gamemaster).getReader().canRead(), "level 2 may place");
@@ -514,6 +522,198 @@ public class RoofwrightGameTests {
 		} catch (PlanException expected) {
 			helper.assertTrue(expected.getMessage().contains("do not enclose"), expected.getMessage());
 		}
+		helper.succeed();
+	}
+
+	// --- G5 security fixes ----------------------------------------------------------------------------
+
+	/** H1: a far corner is refused from its coordinates, before a single column is collected. */
+	@GameTest
+	public void farSelectionIsRefusedBeforeAllocating(GameTestHelper helper) throws PlanException {
+		CommandSourceStack source = source(builder(helper, GameType.CREATIVE));
+		BlockPos corner = helper.absolutePos(new BlockPos(1, TOP, 1));
+		long start = System.nanoTime();
+		try {
+			RoofService.selectRectangle(source, helper.getLevel(), corner, corner.offset(100_000, 0, 100_000), false);
+			helper.fail("a 100,001-wide selection must be refused");
+		} catch (PlanException expected) {
+			helper.assertTrue(expected.getMessage().contains("the limit is"), expected.getMessage());
+		}
+		helper.assertTrue(System.nanoTime() - start < 1_000_000_000L, "refused in under a second");
+
+		// "select add" counts the union: two small rectangles 200 blocks apart are too wide together.
+		Footprint first = RoofService.selectRectangle(source, helper.getLevel(), corner, corner.offset(4, 0, 4), false);
+		try {
+			RoofService.selectRectangle(source, helper.getLevel(), corner.offset(200, 0, 0), corner.offset(204, 0, 4), true);
+			helper.fail("a union wider than maxSpan must be refused");
+		} catch (PlanException expected) {
+			helper.assertTrue(expected.getMessage().contains("205 x 5"), expected.getMessage());
+		}
+		helper.assertValueEqual(RoofService.session(source).footprint(), first, "the earlier selection stays");
+		helper.succeed();
+	}
+
+	/** M1: portals, containers, fluids, unbreakable, operator and falling blocks never become a roof. */
+	@GameTest
+	public void unsafeMaterialsAreRefused(GameTestHelper helper) throws PlanException, CommandSyntaxException {
+		for (Block bad : new Block[] {Blocks.TNT, Blocks.CHEST, Blocks.BEDROCK, Blocks.SAND, Blocks.COMMAND_BLOCK, Blocks.BUDDING_AMETHYST,
+				Blocks.SPAWNER, Blocks.GLASS_PANE}) {
+			helper.assertTrue(Materials.explicit(Blocks.OAK_STAIRS, Blocks.OAK_SLAB, bad).error() != null, bad + " as the full block");
+		}
+		helper.assertTrue(Materials.explicit(Blocks.OAK_STAIRS, Blocks.OAK_SLAB, Blocks.OAK_PLANKS).materials() != null, "planks are fine");
+		helper.assertTrue(Materials.problem(Blocks.WATER.defaultBlockState(), true) != null, "water");
+		helper.assertTrue(Materials.problem(Blocks.LAVA.defaultBlockState(), false) != null, "lava");
+		helper.assertTrue(Materials.problem(Blocks.NETHER_PORTAL.defaultBlockState(), false) != null, "nether portal");
+		helper.assertTrue(Materials.problem(Blocks.END_PORTAL.defaultBlockState(), true) != null, "end portal");
+		helper.assertTrue(Materials.problem(Blocks.FIRE.defaultBlockState(), false) != null, "fire");
+		helper.assertTrue(Materials.problem(Blocks.TNT.defaultBlockState(), true).contains("forbidden"), "the tag names itself");
+		helper.assertTrue(Materials.problem(Blocks.STONE_BRICKS.defaultBlockState(), true) == null, "stone bricks are fine");
+
+		MinecraftServer server = helper.getLevel().getServer();
+		CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
+		ServerPlayer gamemaster = builder(helper, GameType.CREATIVE);
+		op(server, gamemaster);
+		try {
+			CommandSourceStack source = source(gamemaster);
+			expectFailure(helper, dispatcher, "roof gable minecraft:end_portal", source, "an End portal as gable walls");
+			expectFailure(helper, dispatcher, "roof gable minecraft:bedrock", source, "bedrock as gable walls");
+			expectFailure(helper, dispatcher, "roof gable minecraft:tnt", source, "TNT as gable walls");
+			expectFailure(helper, dispatcher, "roof material minecraft:oak_stairs minecraft:oak_slab minecraft:barrier", source, "barrier");
+			helper.assertValueEqual(dispatcher.execute("roof gable minecraft:bricks", source), 1, "bricks as gable walls");
+		} finally {
+			server.getPlayerList().deop(gamemaster.nameAndId());
+		}
+
+		// Detection copies the clicked block for gable walls only when it is safe: a TNT corner is not copied.
+		walls(helper, square(1, 5));
+		helper.setBlock(new BlockPos(1, TOP, 1), Blocks.TNT);
+		CommandSourceStack source = source(builder(helper, GameType.CREATIVE));
+		RoofService.session(source).setSpec(RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE));
+		RoofService.detect(source, helper.getLevel(), helper.absolutePos(new BlockPos(1, TOP, 1)));
+		RoofService.Prepared prepared = RoofService.prepare(source, false);
+		helper.assertTrue(prepared.targets().stream().noneMatch(t -> t.state().is(Blocks.TNT)), "no TNT in the roof");
+		helper.assertTrue(prepared.targets().stream().anyMatch(t -> t.state().is(Blocks.SPRUCE_PLANKS)), "gable walls fall back to planks");
+		helper.succeed();
+	}
+
+	/** M2: a burst of wand clicks acts once; the wand works again after the cooldown. */
+	@GameTest(maxTicks = 60)
+	public void wandClicksHaveACooldown(GameTestHelper helper) {
+		walls(helper, square(1, 5));
+		walls(helper, Footprint.rectangle(8, 1, 12, 5, TOP));
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		MinecraftServer server = helper.getLevel().getServer();
+		op(server, player);
+		player.setItemInHand(InteractionHand.MAIN_HAND, Wand.create());
+		RoofSession session = RoofService.session(player.getUUID());
+		RoofStyle before = session.spec().style();
+		BlockPos ground = helper.absolutePos(new BlockPos(3, 0, 3));
+		for (int i = 0; i < 10; i++) {
+			AttackBlockCallback.EVENT.invoker().interact(player, helper.getLevel(), InteractionHand.MAIN_HAND, ground, Direction.UP);
+		}
+		RoofStyle once = RoofStyle.values()[(before.ordinal() + 1) % RoofStyle.values().length];
+		helper.assertValueEqual(session.spec().style(), once, "ten clicks in one tick change the style once");
+
+		helper.runAfterDelay(RoofwrightConfig.get().wandCooldownTicks() + 1, () -> {
+			// Right-click the first house, then at once the second: only the first is selected.
+			BlockPos first = helper.absolutePos(new BlockPos(1, TOP, 1));
+			BlockPos second = helper.absolutePos(new BlockPos(8, TOP, 1));
+			UseBlockCallback.EVENT.invoker().interact(player, helper.getLevel(), InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(first), Direction.UP, first, false));
+			UseBlockCallback.EVENT.invoker().interact(player, helper.getLevel(), InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(second), Direction.UP, second, false));
+			server.getPlayerList().deop(player.nameAndId());
+			Footprint selected = session.footprint();
+			helper.assertTrue(selected != null && selected.contains(first.getX(), first.getZ()), "the wand works again after the cooldown");
+			helper.assertFalse(selected.contains(second.getX(), second.getZ()), "the second click came too soon");
+			helper.succeed();
+		});
+	}
+
+	/** L1: checking an unloaded position never loads its chunk. */
+	@GameTest
+	public void unloadedChunksAreNeverLoaded(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos far = new BlockPos(2_000_016, 70, 2_000_016);
+		helper.assertFalse(level.getChunkSource().hasChunk(far.getX() >> 4, far.getZ() >> 4), "test setup: the chunk is not loaded");
+		helper.assertValueEqual(Protection.check(level, far, null, false), Protection.Verdict.NOT_LOADED, "verdict");
+		helper.assertFalse(level.getChunkSource().hasChunk(far.getX() >> 4, far.getZ() >> 4), "the check loaded the chunk");
+		helper.succeed();
+	}
+
+	/** L2: replacing a block needs break rights; a claim that allows placing only keeps its blocks. */
+	@GameTest
+	public void replacingNeedsBreakRights(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		BlockPos stone = new BlockPos(2, TOP + 1, 1);
+		helper.setBlock(stone, Blocks.STONE);
+		AABB claim = new AABB(Vec3.atCenterOf(helper.absolutePos(new BlockPos(-2, 0, -2))), Vec3.atCenterOf(helper.absolutePos(new BlockPos(8, 8, 8))));
+		Identifier id = Identifier.fromNamespaceAndPath("roofwright-gametest", "place-only-" + helper.absolutePos(BlockPos.ZERO).asLong());
+		CommonProtection.register(id, new ProtectionProvider() {
+			@Override
+			public boolean isProtected(Level level, BlockPos pos) {
+				return claim.contains(Vec3.atCenterOf(pos));
+			}
+
+			@Override
+			public boolean isAreaProtected(Level level, AABB area) {
+				return claim.intersects(area);
+			}
+
+			@Override
+			public boolean canPlaceBlock(Level level, BlockPos pos, net.minecraft.server.players.NameAndId profile,
+					net.minecraft.world.entity.player.Player player) {
+				return true;
+			}
+
+			@Override
+			public boolean canBreakBlock(Level level, BlockPos pos, net.minecraft.server.players.NameAndId profile,
+					net.minecraft.world.entity.player.Player player) {
+				return !isProtected(level, pos);
+			}
+		});
+		try {
+			ServerPlayer player = builder(helper, GameType.CREATIVE);
+			PlacementJob job = roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE), true);
+			helper.assertBlockPresent(Blocks.STONE, stone);
+			helper.assertTrue(job.placed() > 0, "air is still roofed");
+			helper.assertTrue(job.skipped().getOrDefault(Protection.Verdict.PROTECTED, 0) >= 1, "the stone was protected: " + job.skipped());
+			// Undo turns roof blocks back into air, which is breaking them: the claim keeps the roof.
+			PlacementJob undo = RoofService.undo(source(player));
+			Placements.runNow(undo);
+			helper.assertValueEqual(undo.placed(), 0, "nothing undone inside a place-only claim");
+			helper.assertBlockPresent(Blocks.SPRUCE_STAIRS, new BlockPos(3, TOP, 0));
+		} finally {
+			CommonProtection.remove(id);
+		}
+		helper.succeed();
+	}
+
+	/** L3: redoing a forced roof needs the force permission again. */
+	@GameTest
+	public void redoNeedsTheSameRights(GameTestHelper helper) throws PlanException {
+		walls(helper, square(1, 5));
+		helper.setBlock(new BlockPos(2, TOP + 1, 1), Blocks.STONE);
+		ServerPlayer player = builder(helper, GameType.CREATIVE);
+		CommandSourceStack source = source(player);
+		roof(helper, player, RoofSpec.DEFAULTS.withStyle(RoofStyle.GABLE), true);
+		Placements.runNow(RoofService.undo(source));
+		helper.assertBlockPresent(Blocks.STONE, new BlockPos(2, TOP + 1, 1));
+		try {
+			RoofService.redo(source);
+			helper.fail("a player without roofwright.force must not redo a forced roof");
+		} catch (PlanException expected) {
+			helper.assertTrue(expected.getMessage().contains("roofwright.force"), expected.getMessage());
+		}
+		helper.assertValueEqual(RoofService.session(source).history().redoCount(), 1, "the refused redo stays available");
+		MinecraftServer server = helper.getLevel().getServer();
+		op(server, player);
+		try {
+			Placements.runNow(RoofService.redo(source(player)));
+		} finally {
+			server.getPlayerList().deop(player.nameAndId());
+		}
+		helper.assertBlockPresent(Blocks.SPRUCE_STAIRS, new BlockPos(2, TOP + 1, 1));
 		helper.succeed();
 	}
 }

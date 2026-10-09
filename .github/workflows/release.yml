@@ -1,22 +1,26 @@
 # On a version tag: build and test, create the GitHub release, publish to CurseForge.
+# Three jobs so that third-party build code (Gradle plugins, the GameTest runtime) never runs next to a
+# token that can write to this repository: only the release job has contents: write, and it runs no build.
 name: release
 on:
   push:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
 
       - name: Check the tag matches gradle.properties
         run: |
@@ -28,12 +32,34 @@ jobs:
       - name: Build and test
         run: ./gradlew build
 
+      # No token here, so the plugin runs as a dry run: it checks the upload without sending anything.
+      - name: CurseForge dry run
+        run: ./gradlew publishCurseforge
+
       - name: Extract release notes from CHANGELOG.md
         run: |
           version=${GITHUB_REF_NAME#v}
           awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {found=1; next} found && /^## \[/ {exit} found {print}' CHANGELOG.md > build/release-notes.md
           test -s build/release-notes.md || { echo "No CHANGELOG.md section for $version"; exit 1; }
 
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: release
+          path: |
+            build/libs/roofwright-*.jar
+            build/release-notes.md
+          if-no-files-found: error
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: release
+          path: release
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,26 +68,33 @@ jobs:
           flags=()
           case "$version" in *-alpha*|*-beta*|*-rc*) flags+=(--prerelease) ;; esac
           # Re-runnable: when a later step failed, the release already exists.
-          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             echo "Release $GITHUB_REF_NAME exists, skipping"
           else
-            gh release create "$GITHUB_REF_NAME" "build/libs/roofwright-${version}.jar" \
-              --title "Roofwright ${version}" --notes-file build/release-notes.md "${flags[@]}"
+            gh release create "$GITHUB_REF_NAME" "release/libs/roofwright-${version}.jar" --repo "$GITHUB_REPOSITORY" \
+              --title "Roofwright ${version}" --notes-file release/release-notes.md "${flags[@]}"
           fi
 
-      # The token is only exposed to the publish step, never to the build and tests.
-      - name: Check for the CurseForge token
-        id: token
-        env:
-          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-        run: echo "present=$([ -n "$CURSEFORGE_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+  curseforge:
+    needs: github-release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
 
+      # The token is only exposed to the publish step. Without it, or without a project id, the plugin
+      # stays in dry-run mode (see publishMods in build.gradle) and nothing is uploaded.
       - name: Publish to CurseForge
-        if: steps.token.outputs.present == 'true'
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: |
-          if ! grep -qE '^curseforge_project_id=[0-9]+$' gradle.properties; then
-            echo "Set curseforge_project_id in gradle.properties before releasing"; exit 1
+          if [ -n "$CURSEFORGE_TOKEN" ] && ! grep -qE '^curseforge_project_id=[0-9]+$' gradle.properties; then
+            echo "CURSEFORGE_TOKEN is set but curseforge_project_id is not; this run is a dry run"
           fi
           ./gradlew publishCurseforge

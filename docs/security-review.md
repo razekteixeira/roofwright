@@ -75,3 +75,30 @@ fixed, each with a test that fails before the fix (H1: a far-apart `/roof select
 allocating; M1: forbidden materials and gable blocks are refused; M2: a burst of wand clicks runs at
 most one detection per cooldown), and the build is re-verified. The low findings should be fixed or
 recorded as accepted risks in `docs/sdlc-log.md`; L9 should be fixed before the first push.
+
+## Resolution (2026-10-09)
+
+Fixes by the delivery lead in a resumed session; every fix with a test that fails without it is also a
+planted mutant in `tools/mutation.py` (M21 to M30), each killed by the test named in
+[mutation-report.md](mutation-report.md).
+
+| ID | Outcome | Change | Test |
+|----|---------|--------|------|
+| H1 | fixed | `selectRectangle` computes width and depth from the corners (and the union with the earlier selection for `add`) and refuses before allocating; `Footprint.Builder.addRectangle` refuses sides over `Footprint.MAX_SIDE` (1,024) as a backstop; `Footprint.span` cannot overflow. | GameTest `farSelectionIsRefusedBeforeAllocating` (100,001-wide refused in under a second; a 205-wide union refused); `FootprintTest` (3 cases). Mutants M21, M22. |
+| M1 | fixed | `Materials.problem` rejects air, block entities, fluids, unbreakable (`defaultDestroyTime < 0`) and `GameMasterBlock` blocks, falling blocks, the new tag `#roofwright:forbidden` (fire, portals, bedrock, barrier, light, structure void, reinforced deepslate, budding amethyst, spawners, vaults, sculk sensors and shriekers, TNT, respawn anchor, end portal frame, frosted ice) and, for full blocks and gable walls, anything that is not a full collision cube. Applied to family and modded materials, explicit materials, `/roof gable <block>` and the detected wall sample. The optional bypass node was not added. | GameTest `unsafeMaterialsAreRefused`. Mutants M23 to M26. |
+| M2 | fixed | Per-player wand cooldown, `wandCooldownTicks` (default 5, 0 to 100) in the config; clicks during it are consumed and ignored. It uses the server tick counter, which keeps counting under `/tick freeze`. Re-detection is not cached. | GameTest `wandClicksHaveACooldown` (ten attack clicks in one tick change the style once; two right-clicks in one tick select only the first house; the wand works after the cooldown). Mutant M27. |
+| L1 | fixed | Detection treats unloaded columns as open; `Protection.check` returns the new verdict `NOT_LOADED` before reading a block; placement reports unloaded positions as "not loaded". | GameTest `unloadedChunksAreNeverLoaded`. Mutant M28. |
+| L2 | fixed | When the current block is not air and would be replaced (force, or undo and redo), `CommonProtection.canBreakBlock` must also allow it. | GameTest `replacingNeedsBreakRights`. Mutant M29. |
+| L3 | fixed (redo); accepted (running jobs) | `Journal` records `force`; redo of a forced roof needs `roofwright.force`, and redo honours `maxBlocks` like placing. Jobs already running are not cancelled when a permission is revoked. | GameTest `redoNeedsTheSameRights`; `HistoryTest.peekRedoLeavesTheEntryInPlace`. Mutant M30. |
+| L4 | accepted risk | After logoff, claims are still checked; spawn protection and adventure mode are not. Narrow window (the job must outlive the logoff), small impact. | None. |
+| L5 | accepted risk | Same exposure as other builder tools: `roofwright.use` is for trusted builders. Owners who worry can keep the default (level 2). | None. |
+| L6 | partly fixed | Hard ceiling `Settings.BLOCK_CEILING` (2,000,000) even with `roofwright.unlimited`; sessions without history are dropped on disconnect. Sessions with history stay, bounded by `historySize` x `maxBlocks`. | Ceiling untested by a GameTest (would need a 2-million-block plan); recorded here. |
+| L7 | fixed | `release.yml` split into `build` (read-only, `persist-credentials: false`, CurseForge dry run), `github-release` (`contents: write`, no checkout, no build) and `curseforge` (read-only, token only in the publish step). `build.yml` and `pages.yml` use `persist-credentials: false`. | `actionlint` clean. |
+| L8 | fixed | Actions pinned by commit SHA; Loom pinned to the release 1.18.3; wrapper `distributionSha256Sum`. Gradle dependency verification metadata not added. | `./gradlew build` green on the pinned versions. |
+| L9 | fixed | `tools/__pycache__/` removed from history before the first push and added to `.gitignore`. | `git log --all -- tools/__pycache__` is empty. |
+| I1 | fixed | Nucleoid and Modrinth repositories wrapped in `exclusiveContent`. | Build green. |
+| I2 | fixed | The release build job always runs `publishCurseforge` without a token (dry run); the publish job runs it unconditionally and the plugin stays in dry run without a token or project id. | Local `./gradlew publishCurseforge` dry run. |
+| I3 | documented | Console, RCON and command blocks share one session; they hold operator power already. | None. |
+
+**Verdict after fixes: clean with fixes.** No high or medium finding remains open; the accepted lows are
+recorded in `docs/sdlc-log.md`.

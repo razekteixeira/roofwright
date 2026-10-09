@@ -27,7 +27,8 @@ import io.github.razekteixeira.roofwright.core.RoofStyle;
 /**
  * The wand: a vanilla stick with a {@code custom_data} marker, a name, lore, the enchantment glint and the
  * blaze rod's look, so vanilla clients show it properly. Holding one grants nothing: every click checks
- * the {@code roofwright.use} permission like the commands do.
+ * the {@code roofwright.use} permission like the commands do. Clicks within {@code wandCooldownTicks} of
+ * the last one are consumed and ignored, so a modified client cannot flood the server with detections.
  *
  * <ul>
  * <li>Right-click the top of a wall: detect the building and preview its roof.</li>
@@ -77,6 +78,9 @@ public final class Wand {
 				if (!RoofwrightCommands.canUse(source)) {
 					return InteractionResult.PASS;
 				}
+				if (!ready(serverPlayer)) {
+					return InteractionResult.SUCCESS;
+				}
 				run(source, () -> {
 					if (serverPlayer.isShiftKeyDown()) {
 						RoofService.place(source, false);
@@ -97,6 +101,9 @@ public final class Wand {
 				if (!RoofwrightCommands.canUse(source)) {
 					return InteractionResult.PASS;
 				}
+				if (!ready(serverPlayer)) {
+					return InteractionResult.SUCCESS;
+				}
 				if (serverPlayer.isShiftKeyDown()) {
 					run(source, () -> RoofService.place(source, false));
 				} else {
@@ -115,6 +122,9 @@ public final class Wand {
 				if (!RoofwrightCommands.canUse(source)) {
 					return InteractionResult.PASS;
 				}
+				if (!ready(serverPlayer)) {
+					return InteractionResult.SUCCESS;
+				}
 				RoofSession session = RoofService.session(source);
 				if (serverPlayer.isShiftKeyDown()) {
 					session.spec = session.spec.withPitch(next(session.spec.pitch()));
@@ -130,6 +140,20 @@ public final class Wand {
 			// Never break the block with the wand.
 			return InteractionResult.SUCCESS;
 		});
+	}
+
+	/**
+	 * Whether a click by this player may act now; starts the cooldown when it may. Callers check the
+	 * permission first, so a player without it never touches a session.
+	 */
+	static boolean ready(ServerPlayer player) {
+		RoofSession session = RoofService.session(player.getUUID());
+		long now = player.level().getServer().getTickCount();
+		if (now < session.wandReadyAt) {
+			return false;
+		}
+		session.wandReadyAt = now + RoofwrightConfig.get().wandCooldownTicks();
+		return true;
 	}
 
 	private static <E extends Enum<E>> E next(E value) {

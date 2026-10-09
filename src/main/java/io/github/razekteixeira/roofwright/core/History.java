@@ -43,6 +43,11 @@ public final class History<T> {
 		return Optional.ofNullable(entry);
 	}
 
+	/** The operation {@link #redo} would take, left in place. */
+	public Optional<T> peekRedo() {
+		return Optional.ofNullable(undone.peek());
+	}
+
 	public int undoCount() {
 		return done.size();
 	}

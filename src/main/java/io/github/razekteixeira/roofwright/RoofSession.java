@@ -24,6 +24,8 @@ public final class RoofSession {
 	/** The clicked wall-top block when the outline was detected, used for gable walls. */
 	@Nullable BlockState wallSample;
 	Preview.@Nullable Shown preview;
+	/** Server tick from which the wand reacts again (see {@link Wand#ready}). */
+	long wandReadyAt;
 	final History<Journal> history = new History<>();
 
 	public RoofSpec spec() {

@@ -9,18 +9,27 @@ base {
 
 repositories {
 	// Common Protection API (Patbox), the shared hook claim mods use to answer "may this player build here".
-	maven {
-		name = 'Nucleoid'
-		url = 'https://maven.nucleoid.xyz/'
-		content {
+	// exclusiveContent: eu.pb4 resolves only from here, and this repository serves nothing else.
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = 'Nucleoid'
+				url = 'https://maven.nucleoid.xyz/'
+			}
+		}
+		filter {
 			includeGroup 'eu.pb4'
 		}
 	}
 	// Macaw's Roofs, only on the GameTest classpath, to prove its roof blocks work as material.
-	maven {
-		name = 'Modrinth'
-		url = 'https://api.modrinth.com/maven'
-		content {
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = 'Modrinth'
+				url = 'https://api.modrinth.com/maven'
+			}
+		}
+		filter {
 			includeGroup 'maven.modrinth'
 		}
 	}

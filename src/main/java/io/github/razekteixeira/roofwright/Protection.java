@@ -23,6 +23,7 @@ public final class Protection {
 	public enum Verdict {
 		NONE("placed"),
 		OUTSIDE_WORLD("outside the world"),
+		NOT_LOADED("not loaded"),
 		PROTECTED("protected"),
 		OCCUPIED("in the way");
 
@@ -55,13 +56,23 @@ public final class Protection {
 		if (level.isOutsideBuildHeight(pos.getY()) || !level.getWorldBorder().isWithinBounds(pos)) {
 			return Verdict.OUTSIDE_WORLD;
 		}
+		// Never read an unloaded position: that would load or even generate the chunk on the server thread.
+		if (!level.isLoaded(pos)) {
+			return Verdict.NOT_LOADED;
+		}
 		if (player != null && (!player.mayBuild() || !level.mayInteract(player, pos))) {
 			return Verdict.PROTECTED;
 		}
+		BlockState current = level.getBlockState(pos);
+		boolean replaceable = replaceable(current, level, pos, force);
 		if (builder != null && !CommonProtection.canPlaceBlock(level, pos, builder, player)) {
 			return Verdict.PROTECTED;
 		}
-		return replaceable(level.getBlockState(pos), level, pos, force) ? Verdict.NONE : Verdict.OCCUPIED;
+		// Replacing something (force, or undo turning roof blocks back into air) is a break as well.
+		if (builder != null && replaceable && !current.isAir() && !CommonProtection.canBreakBlock(level, pos, builder, player)) {
+			return Verdict.PROTECTED;
+		}
+		return replaceable ? Verdict.NONE : Verdict.OCCUPIED;
 	}
 
 	/**

@@ -5,11 +5,17 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.BlockFamilies;
 import net.minecraft.data.BlockFamily;
 import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.FallingBlock;
+import net.minecraft.world.level.block.GameMasterBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,7 +29,8 @@ import io.github.razekteixeira.roofwright.core.StairShape;
 /**
  * The blocks a roof is made of: stairs, a slab, a full block and (for parapets) a wall. Resolved from
  * any one member of a vanilla block family, or from any block that behaves like stairs (Macaw's Roofs and
- * other mods), whose slab and full block are found by name.
+ * other mods), whose slab and full block are found by name. Every block is checked by {@link #problem}
+ * first, so a roof can never be made of portals, containers, fluids, unbreakable or operator blocks.
  */
 public record Materials(Block stairs, Block slab, Block full, @Nullable Block wall) {
 	public static final Materials DEFAULT = new Materials(
@@ -31,6 +38,53 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 			net.minecraft.world.level.block.Blocks.SPRUCE_SLAB,
 			net.minecraft.world.level.block.Blocks.SPRUCE_PLANKS,
 			null);
+
+	/**
+	 * Blocks a roof may never be made of, on top of the built-in rules. Server owners extend it with a data
+	 * pack ({@code data/roofwright/tags/block/forbidden.json}).
+	 */
+	public static final TagKey<Block> FORBIDDEN = TagKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(Roofwright.MOD_ID, "forbidden"));
+
+	/**
+	 * Why a block state may not be part of a roof, or {@code null} when it may. Stairs and slabs are checked
+	 * with {@code fullBlock} false; full blocks and gable walls must also be a full cube.
+	 */
+	public static @Nullable String problem(BlockState state, boolean fullBlock) {
+		String id = id(state.getBlock()).toString();
+		if (state.isAir()) {
+			return id + " is air";
+		}
+		if (state.hasBlockEntity()) {
+			return id + " holds data (a container, sign or spawner) and cannot be part of a roof";
+		}
+		if (!state.getFluidState().isEmpty()) {
+			return id + " is or holds a fluid";
+		}
+		if (state.getBlock().defaultDestroyTime() < 0 || state.getBlock() instanceof GameMasterBlock) {
+			return id + " is an unbreakable or operator block";
+		}
+		if (state.getBlock() instanceof FallingBlock) {
+			return id + " would fall";
+		}
+		if (state.is(FORBIDDEN)) {
+			return id + " is not allowed in roofs (#" + FORBIDDEN.location() + ")";
+		}
+		if (fullBlock && !state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) {
+			return id + " is not a full block";
+		}
+		return null;
+	}
+
+	/** The first problem among these materials, or {@code null}. */
+	public @Nullable String problem() {
+		for (Block block : wall == null ? List.of(stairs, slab) : List.of(stairs, slab, wall)) {
+			String problem = problem(block.defaultBlockState(), false);
+			if (problem != null) {
+				return problem;
+			}
+		}
+		return problem(full.defaultBlockState(), true);
+	}
 
 	/** A short name for chat: the stairs' id, without the namespace for vanilla blocks. */
 	public String name() {
@@ -60,7 +114,7 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 				.findFirst();
 		if (family.isPresent()) {
 			BlockFamily f = family.get();
-			return Result.ok(new Materials(f.get(BlockFamily.Variant.STAIRS), f.get(BlockFamily.Variant.SLAB), f.getBaseBlock(),
+			return Result.checked(new Materials(f.get(BlockFamily.Variant.STAIRS), f.get(BlockFamily.Variant.SLAB), f.getBaseBlock(),
 					f.get(BlockFamily.Variant.WALL)));
 		}
 		if (!isStairLike(block)) {
@@ -75,7 +129,7 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 			return Result.error("Found the stairs " + id + " but not a matching " + (slab == null ? "slab" : "full block")
 					+ ". Give all three: /roof material " + id + " <slab> <full block>");
 		}
-		return Result.ok(new Materials(block, slab, full, null));
+		return Result.checked(new Materials(block, slab, full, null));
 	}
 
 	/** Explicit stairs, slab and full block, each checked for its kind. */
@@ -89,7 +143,7 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 		if (isStairLike(full) || isSlabLike(full) || full.defaultBlockState().isAir()) {
 			return Result.error(id(full) + " is not a full block");
 		}
-		return Result.ok(new Materials(stairs, slab, full, null));
+		return Result.checked(new Materials(stairs, slab, full, null));
 	}
 
 	private static @Nullable Block firstExisting(String namespace, List<String> paths, java.util.function.Predicate<Block> kind) {
@@ -141,8 +195,10 @@ public record Materials(Block stairs, Block slab, Block full, @Nullable Block wa
 
 	/** Either materials or a message for chat. */
 	public record Result(@Nullable Materials materials, @Nullable String error) {
-		static Result ok(Materials materials) {
-			return new Result(materials, null);
+		/** The materials, or the first {@link Materials#problem} with them. */
+		static Result checked(Materials materials) {
+			String problem = materials.problem();
+			return problem == null ? new Result(materials, null) : error(problem);
 		}
 
 		static Result error(String message) {

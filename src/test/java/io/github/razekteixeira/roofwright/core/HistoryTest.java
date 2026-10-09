@@ -51,4 +51,15 @@ class HistoryTest {
 		history.record("a", 0);
 		assertEquals(0, history.undoCount());
 	}
+
+	@Test
+	void peekRedoLeavesTheEntryInPlace() {
+		History<String> history = new History<>();
+		history.record("a", 3);
+		assertTrue(history.peekRedo().isEmpty());
+		history.undo();
+		assertEquals(Optional.of("a"), history.peekRedo());
+		assertEquals(1, history.redoCount(), "peeking takes nothing");
+		assertEquals(Optional.of("a"), history.redo());
+	}
 }
