@@ -64,6 +64,6 @@ Upload in this order; mark the first one as featured. All are real captures from
    and uploads nothing; `./gradlew publishCurseforge` without a token or project ID is a dry run too.
    The CurseForge job publishes the same jar and release notes as the GitHub release.
 4. The file shows as "Under review" until a CurseForge moderator approves it.
-5. After approval, point the site's "Download" buttons and footer link (`site/index.html`, now the
-   GitHub releases page) at curseforge.com/minecraft/mc-mods/roofwright, and add the CurseForge downloads badge to the README
-   (`https://img.shields.io/curseforge/dt/<project id>?logo=curseforge&label=CurseForge`).
+5. The site's "Get it on CurseForge" buttons and the README downloads badge
+   (`https://img.shields.io/curseforge/dt/<project id>?logo=curseforge&label=CurseForge`) point at the
+   project; the page opens for everyone once the first file is approved.
