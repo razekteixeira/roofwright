@@ -67,5 +67,7 @@ that its roof blocks work as Roofwright material. It is not bundled, not require
 ## Fonts used for artwork (repository only, not in the mod jar)
 
 `branding/fonts/` holds Silkscreen (Jason Kottke) and Geist (Vercel), both under the SIL Open Font
-License 1.1; the full licence texts are next to the fonts (`Silkscreen-OFL.txt`, `Geist-OFL.txt`).
+License 1.1; the full licence texts are next to the fonts (`Silkscreen-OFL.txt`, `Geist-OFL.txt`). The
+project site loads Silkscreen, Geist and JetBrains Mono (also SIL Open Font License 1.1) from Google
+Fonts at runtime; they are not copied into this repository.
 They are used by `branding/make_banners.py` to draw the banners.

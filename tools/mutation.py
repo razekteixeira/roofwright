@@ -80,7 +80,7 @@ MUTANTS = [
     ("M31", "PlacementJob.java", "Protection.Verdict verdict = Protection.check(level, pos, player, builder, true);\n\t\t\tif (verdict != Protection.Verdict.NONE) {",
      "Protection.Verdict verdict = Protection.check(level, pos, player, builder, true);\n\t\t\tif (verdict == Protection.Verdict.PROTECTED) {",
      "F1: undo and redo skip only claimed blocks"),
-    ("M32", "PlacementJob.java", " || !level.hasChunksAt(pos.offset(-1, 0, -1), pos.offset(1, 0, 1))", "",
+    ("M32", "PlacementJob.java", "if (!level.hasChunksAt(pos.offset(-1, 0, -1), pos.offset(1, 0, 1)) || ", "if (",
      "F2: settling reads unloaded neighbours"),
     ("M33", "PlacementJob.java", "} else if (settleNext()) {\n\t\t\t\tdone++;",
      "} else if (settleNext()) {\n\t\t\t\twhile (settleNext()) {\n\t\t\t\t}\n\t\t\t\tdone++;", "F3: settling ignores the block budget"),

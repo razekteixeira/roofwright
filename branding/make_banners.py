@@ -74,10 +74,10 @@ def logo(height):
 
 def title(draw, xy, size, max_width):
     x, y = xy
-    f = font("Silkscreen-Bold.ttf", size)
+    f = font("Silkscreen-Regular.ttf", size)
     while draw.textlength("ROOFWRIGHT", font=f) > max_width and size > 20:
         size -= 2
-        f = font("Silkscreen-Bold.ttf", size)
+        f = font("Silkscreen-Regular.ttf", size)
     shadow = max(3, size // 24)
     draw.text((x + shadow, y + shadow), "ROOFWRIGHT", font=f, fill=SHADE)
     draw.text((x, y), "ROOFWRIGHT", font=f, fill=TERRACOTTA)

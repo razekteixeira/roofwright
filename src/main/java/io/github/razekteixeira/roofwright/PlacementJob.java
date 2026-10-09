@@ -167,28 +167,31 @@ public final class PlacementJob {
 
 	/**
 	 * Settles the next change that needs it: walls connect and stairs take their corner shape from the
-	 * blocks really around them. Never reads an unloaded neighbour.
+	 * blocks really around them. Never reads an unloaded neighbour. Each block checked is one unit of the
+	 * budget, written or not, so a long run of stairs that already have the right shape cannot overrun it.
 	 *
-	 * @return whether a block was written; false when nothing is left to settle
+	 * @return whether a block was checked; false when nothing is left to settle
 	 */
 	private boolean settleNext() {
-		while (nextSettle < changes.size()) {
-			int i = nextSettle++;
-			Journal.Change change = changes.get(i);
-			BlockPos pos = change.pos();
-			if (!needsSettling(change) || !level.hasChunksAt(pos.offset(-1, 0, -1), pos.offset(1, 0, 1))
-					|| level.getBlockState(pos) != change.after()) {
-				continue;
-			}
-			BlockState settled = Block.updateFromNeighbourShapes(change.after(), level, pos);
-			if (settled != change.after()) {
-				level.setBlock(pos, settled, FLAGS);
-				lastTickWrites++;
-				changes.set(i, new Journal.Change(pos, change.before(), settled));
-				return true;
-			}
+		while (nextSettle < changes.size() && !needsSettling(changes.get(nextSettle))) {
+			nextSettle++;
 		}
-		return false;
+		if (nextSettle >= changes.size()) {
+			return false;
+		}
+		int i = nextSettle++;
+		Journal.Change change = changes.get(i);
+		BlockPos pos = change.pos();
+		if (!level.hasChunksAt(pos.offset(-1, 0, -1), pos.offset(1, 0, 1)) || level.getBlockState(pos) != change.after()) {
+			return true;
+		}
+		BlockState settled = Block.updateFromNeighbourShapes(change.after(), level, pos);
+		if (settled != change.after()) {
+			level.setBlock(pos, settled, FLAGS);
+			lastTickWrites++;
+			changes.set(i, new Journal.Change(pos, change.before(), settled));
+		}
+		return true;
 	}
 
 	private boolean needsSettling(Journal.Change change) {

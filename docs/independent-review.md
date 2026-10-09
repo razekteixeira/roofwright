@@ -55,3 +55,53 @@ Read-only review of source, tests, workflows and existing gate evidence; relevan
 ## Verdict
 
 **Not approved.** Fix **F1–F7** and add discriminating regression tests before passing G6. Resolve **F8** and close the identified acceptance-test gaps before claiming all AC1–AC24 are satisfied.
+## Part B: documentation and claims review (I2)
+
+Reviewer: a fresh-context Claude subagent on a different model (Sonnet) from the implementer, read-only,
+2026-10-09, same commit, canonical input only (the documents and the code they describe). Verdict:
+**approved with fixes** (medium: B-F1 stale mutation report, B-F7 site config without
+`wandCooldownTicks`, B-F13 the hero logo not produced by any script). Its findings, condensed:
+
+| ID | Severity | Finding |
+|----|----------|---------|
+| B-F1 | medium | Mutation report showed only M01 to M20. |
+| B-F2 | low | M20 ("ridges never capped") was "killed" by dozens of unrelated tests: a crash, not a discriminating kill. |
+| B-F3 | low | CONTRIBUTING said 20 mutants. |
+| B-F4 | low | The spec named `tools/mutation.sh` (it is `.py`). |
+| B-F5 | low | Gate log G1 said AC1 to AC18; AC16 counted 4 `HistoryTest` cases. |
+| B-F6 | info | 23 required GameTests for 22 methods. |
+| B-F7 | medium | Site config example missed `wandCooldownTicks`. |
+| B-F8 | low | CurseForge text missed `wandCooldownTicks`, the safe-material filter and claim break rights. |
+| B-F9 | low | `/roof help` in no command table. |
+| B-F10 | low | No config ranges; the 96-block cone and dome limit unstated. |
+| B-F11 | low | README planner timings for 64 and 128 not in the gate log; the big benchmarks exceed default limits. |
+| B-F12 | low | The CurseForge job had no release notes and rebuilt the jar; the listing said it "stops" without a token. |
+| B-F13 | medium | `site/media/logo3d.png` produced by no script. |
+| B-F14 | info | `site/media` empty until regenerated. |
+| B-F15 | low | Site buttons linked to a CurseForge page that does not exist yet. |
+| B-F16 | low | A local filter-branch backup ref still holds the old history with the local path. |
+| B-F17 | info | Upstream author's email inside the MIT notice (licence text, fine). |
+| B-F18 | low | Accepted risk L5 not explained to owners. |
+| B-F19 to B-F21 | info | Notices match the jar; link-preview tags complete; CSS sound at 390 px (verify by rendering). |
+
+## Resolution
+
+| ID | Outcome | Change and evidence |
+|----|---------|---------------------|
+| F1 | fixed | `PlacementJob.apply`: undo and redo skip any verdict other than `NONE`. GameTest `replayChecksTheWorldLimits` (border shrunk around the house between undo and redo, restored in the same call). Mutant M31. |
+| F2 | fixed | Settling skips a block unless the chunks around it are loaded (`hasChunksAt`). GameTest `settlingNeverLoadsChunks` (a wall at the west edge of the loaded area; the next chunk stays unloaded). Mutant M32. |
+| F3 | fixed | Settling is a phase of the job, one write per budget unit; `tick` counts settle writes; `Placements` gives later jobs a turn only before the shared deadline. GameTest `settlingStaysWithinTheBlockBudget` (flat roof, at most 5 writes per turn, 41 writes for 25 blocks). Mutant M33. |
+| F4 | fixed | Stairs settle like walls, so their shape comes from what was really placed. GameTest `blockedNeighboursLeaveNoWrongCorners`. Mutant M34. |
+| F5 | fixed | Undo and redo only peek at history; when the job ends, `RoofService.settleHistory` splits the journal at the job's progress (`History.finishUndo`, `finishRedo`); the destination world is checked before anything moves. GameTest `cancelledUndoKeepsTheRestUndoable`; `HistoryTest` 2 new cases. Mutant M35. |
+| F6 | fixed | `prepare` checks the materials and the gable block again (defaults and data-pack changes included). GameTest `materialsAreCheckedAgainWhenBuilding`. Mutant M36. Jobs already queued are not re-checked: they hold block states chosen at plan time, accepted. |
+| F7 | fixed | A blank `CURSEFORGE_TOKEN` counts as missing. Checked by hand: empty and blank token with project id 123 both print "Dry run publishCurseforge". |
+| F8 | fixed | `/roof preview` refuses while the player is in another dimension than the selection. GameTest `previewNeedsTheSelectionsDimension`. Mutant M37. |
+| AC gaps | fixed or recorded | AC10 test name corrected; AC24 redo `maxBlocks` now tested; reload's command-tree resend (AC12), cone and dome roundness (AC5), flat-roof watertightness (AC6) and an unmodified client on a dedicated server (AC18) stay as recorded limits of the tests. |
+| Found while fixing | fixed | Block family lookup was not deterministic: `stone_bricks` could resolve to the stone family (it is that family's "polished" variant), so `/roof material stone_bricks` sometimes built with stone. Families now rank by base block, then stairs, slab or wall variant, then id. GameTest `materialsResolveFromAnyFamilyMember`. Mutant M38. |
+| Found by the benchmark | fixed | After F3/F4, settling scanned stairs whose shape did not change without charging the budget: the placement benchmark showed a worst tick of 5.40 ms median (7.43 max) against the 5 ms budget. Each block checked while settling is now one unit of the budget: 17 ticks, worst tick median 3.60 ms, max 4.84 ms. M31 to M34 rerun on the new code: 4 of 4 killed. |
+| Banner title | fixed | The visual check found the bold pixel font's "W" reading as a heart ("ROOF♥RIGHT"); banners now use Silkscreen Regular, the weight the site already used. |
+| B-F1, B-F2 | fixed | Full mutation rerun (38 mutants) on a clean export; M20 replaced by "slab ridge caps not lowered", a mutant that keeps plans valid. |
+| B-F3 to B-F5, B-F7 to B-F10, B-F12, B-F13, B-F15, B-F18 | fixed | Docs, site, CurseForge texts and scripts updated; the CurseForge job downloads the release artifact and publishes it with `-PreleaseJar`. |
+| B-F6 | explained | The 30th required GameTest is vanilla's built-in `minecraft:always_pass`. |
+| B-F11 | fixed | Benchmarks rerun after the settle change; every number in the README is in the gate log. |
+| B-F16 | accepted | The backup ref is local only and is never pushed (only `roofwright-build:main` is pushed, never `--all` or `--mirror`); deleting it was refused by the session's permission check. |

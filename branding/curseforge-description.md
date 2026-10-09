@@ -77,7 +77,7 @@ Every screenshot is a real capture from the game client, made by the project's c
 
 - **Permissions:** with a permissions mod such as LuckPerms, grant `roofwright.use`, `roofwright.force`, `roofwright.unlimited` and `roofwright.admin`. Without one, the operator levels from `config/roofwright.json` apply (defaults 2, 2, 3, 3). Holding a wand grants nothing; every click is checked.
 - **Limits** in `config/roofwright.json`: `maxSpan` (widest outline, 96), `maxBlocks` per roof (30,000), `blocksPerTick` (2,000) and `millisPerTick` (5) shared by everyone's roofs, `historySize` (10), `previewLimit` (3,000), `previewSeconds` (300) and `wandCooldownTicks` (5). Applied with `/roof reload`. Grant `roofwright.use` to trusted builders.
-- **Performance:** planning a 256 by 256 hip roof takes about 17 ms; while a 16,900-block roof goes up, the worst tick has a median of 2.05 ms (measured on an Apple M-series Mac with the repository's benchmark scripts).
+- **Performance:** planning a 256 by 256 hip roof takes about 18 ms; while a 16,900-block roof goes up, the worst tick has a median of 3.60 ms, inside the 5 ms budget (measured on an Apple M-series Mac with the repository's benchmark scripts).
 - History and previews live in memory; a server restart clears them.
 
 ## Install
