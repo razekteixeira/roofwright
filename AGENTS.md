@@ -222,6 +222,9 @@ contact details into tracked files; refer to the vault only as the local path
 
 ### 6. Site and release
 
+- Distribution is CurseForge only (owner's choice, 2026-10-08, for its larger
+  community) through mod-publish-plugin; never add Modrinth unless the owner
+  asks.
 - Site: `site/` deploys to GitHub Pages on push to `main` (`pages.yml`); the
   Pages environment allows only `main`. Verify at 1440 px and a true 390 px
   iframe, and that every referenced asset returns 200.
