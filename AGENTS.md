@@ -1,88 +1,35 @@
 # Source Code Agent Guide
 
-This repository contains the source code for Roofwright. The sibling vault
-repository owns the project authority map and durable agent-facing synthesis.
-The binding project, engineering, toolchain and release rules are in the
-"Roofwright" sections at the end of this file; they apply to every agent (Claude
-Code, Codex, Cursor, others).
-
-The vault is local only (no remote). Cloud sessions and worktrees outside
-`personal/roofwright/` will not find it: everything needed for code work is
-in this file, `CONTRIBUTING.md` and `docs/`.
+This repository contains the source code for Roofwright. The binding project,
+engineering, toolchain and release rules are in the "Roofwright" sections at
+the end of this file; they apply to every agent (Claude Code, Codex, Cursor,
+others). Everything needed for code work is in this file, `CONTRIBUTING.md`
+and `docs/`.
 
 ## First Read
 
 1. Read this file.
-2. Read `../roofwright-vault/Welcome.md`.
-3. Read `../roofwright-vault/Vault Map.md`.
-4. Read `../roofwright-vault/00 - Meta/Agent Guide.md`.
-5. Read `../roofwright-vault/00 - Meta/Source Authority.md` and
-   `../roofwright-vault/00 - Meta/Agentic Project Profile.json`.
-6. Read only the notes relevant to the task.
+2. If `.vault/` exists, it holds the owner's personal working notes (Margin):
+   follow `.vault/AGENTS.md`. It is local and never committed; never name or
+   copy its content into the repository, commits, PRs or code comments.
+3. Read only the docs relevant to the task.
 
 ## Source Hierarchy
 
 1. User request in the current conversation.
 2. Source-code repository rules in this file.
-3. The authority map and governed vault notes under `../roofwright-vault/`.
+3. `docs/spec.md`, `docs/sdlc-log.md` and `CONTRIBUTING.md`.
 4. The owner's global agent instructions, when the runtime loads them.
-
-## SDLC method (central)
-
-This project adopts the central Agentic SDLC method. Source of truth for the
-method (profiles, phases, G0 Intake ready to G8 Learning captured gates,
-operational patterns):
-`../../../agentic-suite-agnostic/` (start with `00 - Map/Vault map.md`).
-Adapt, do not copy: the central method governs the form; this project governs
-the local instantiation (stack, commands, thresholds).
-
-- adopted agentic_sdlc_version: 2026-10-20
-- Deltas since then: `../../../agentic-suite-agnostic/CHANGELOG.md` (focus on the
-  "Downstream impact" section).
-- Without the sibling checkout, the method is at
-  `https://github.com/brunofgsaraiva/agentic-suite-agnostic`.
-- Local adaptation (when it exists): see local instantiation note,
-  `../roofwright-vault/05 - Operations/SDLC Local Instantiation.md` (gates
-  mapping, thresholds, repeatability decisions). The gate commands needed for
-  code work are repeated in "Engineering and gates" below.
-- Knowledge sync mode: authoritative-vault.
-- Knowledge navigation scale: small.
-- Adoption contract: `../../../agentic-suite-agnostic/ADOPTION.md`.
-- Agent entry rule: for delivery or coding work, use the `agentic-sdlc` gateway
-  before acting. If the runtime does not load skills automatically, read
-  `../../../agentic-suite-agnostic/skills/agentic-sdlc/SKILL.md` and follow it.
-
-<!-- agentic-project:runtime-profile:start -->
-## Agentic Project runtime defaults
-
-- Selected by default when available: `rtk-ai-cli`. Compress noisy development command output before it enters agent context.
-- These are project runtime preferences, not Agentic SDLC dependencies or gate
-  criteria. The user can opt out of a default for a task.
-- Explicit operator modes such as `modo-compacto` remain opt-in only.
-- Optional scaffold files for project type `product-tooling`: none, by declaration. Reason: Product tooling is reproduced by its own engineers from the repository's test path, so the reader-facing report adds a second, weaker surface.
-
-<!-- agentic-project:runtime-profile:end -->
 
 ## Rules
 
 - When reporting information to me, be extremely concise and sacrifice grammar for the sake of concision
 - Use EN-GB for project knowledge unless the user asks otherwise.
-- Follow the sibling vault's `00 - Meta/Source Authority.md` for persistent
-  knowledge, external facts, approvals and work state.
-- Preserve relative links between the source-code and vault repositories.
-- Keep raw source material, working notes and derived outputs separate.
-- Use `../roofwright-vault/02 - Sources/raw/` as the unprocessed source inbox;
-  move ingested source files to `../roofwright-vault/02 - Sources/raw/processed/`
-  and attachments to `../roofwright-vault/02 - Sources/raw/assets/`.
 - Classify documentation code by role, not extension. This repository owns
   generators, themes and documentation applications that require a build,
-  dependencies, tests or deployment. Hand-authored HTML, CSS or JavaScript that
-  is itself human-readable documentation may belong in the sibling vault.
-- Do not edit generated documentation outputs directly. Record
-  `generated_from`, `build_command` and `output_path` in the vault operations
-  note.
-- If the sibling vault is unavailable, do not invent or silently replace its
-  decisions. Record the missing dependency and continue only with bounded code work.
+  dependencies, tests or deployment.
+- Do not edit generated documentation outputs directly; change their source and
+  rebuild.
 - Repeatability rule: when a task, or a stable part of it, is reasonably
   expected to run more than once, the work is not complete until it leaves the
   smallest suitable deterministic path under version control. Reuse an existing
@@ -113,8 +60,8 @@ Binding rules for every agent working on Roofwright. Merged here on 2026-10-19
 from the previous local session brief (the durable, publishable rules only),
 the previous `AGENTS.md` and the owner's Claude memory notes. This repository
 is **public**: never copy vault contents, private notes or the owner's private
-contact details into tracked files; refer to the vault only as the local path
-`../roofwright-vault/`.
+contact details into tracked files. The owner's personal notes live in `.vault/`
+(local, never committed).
 
 ### 1. Project
 
@@ -133,7 +80,7 @@ contact details into tracked files; refer to the vault only as the local path
   `docs/sdlc-log.md`. Contributor rules, layout, artwork pipeline and release
   steps: `CONTRIBUTING.md`. Do not duplicate them here.
 - Reference implementation: the sibling mod **Throughput**
-  (`../../throughput/throughput-source-code/`, github.com/razekteixeira/throughput).
+  (`../throughput/`, github.com/razekteixeira/throughput).
   Reuse its structure, tooling, scripts and quality bar. Read it only; never
   modify it.
 
@@ -141,7 +88,7 @@ contact details into tracked files; refer to the vault only as the local path
 
 - Release tags (`v*`), CurseForge uploads, new repositories and any change
   outside this repository need the owner's explicit instruction. Reading
-  `../../throughput/throughput-source-code/` and the vault is allowed.
+  `../throughput/` and `.vault/` is allowed.
 - Never `cd` into a sibling repository: the session working directory and
   worktree tools follow `cd` (on 2026-10-08 a `cd` into the Throughput repo made a worktree
   inside the sibling repo). Read siblings by absolute path (`cat`, `javap`,
